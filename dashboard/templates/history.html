@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation History - Grain Dryer System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f57c00 0%, #ff6f00 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .content-box {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .status-complete { background: #d1fae5; color: #065f46; }
+        .status-running { background: #dbeafe; color: #1e40af; }
+        .status-error { background: #fee2e2; color: #991b1b; }
+        table { font-size: 1rem; }
+        .comment-preview {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-style: italic;
+            color: #666;
+        }
+        .comment-icon {
+            cursor: pointer;
+            color: #f57c00;
+        }
+        .comment-icon:hover {
+            color: #ff6f00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Simulation History</h1>
+            <p class="text-muted mb-0">View and analyze past simulation runs</p>
+        </div>
+        
+        <div class="content-box">
+            <h3>Recent Simulations</h3>
+            <table class="table table-hover mt-3">
+                <thead class="table-warning">
+                    <tr>
+                        <th>ID</th>
+                        <th>Crop</th>
+                        <th>Model</th>
+                        <th>Initial → Target MC</th>
+                        <th>Time (hr)</th>
+                        <th>Energy (BTU)</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Comments</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if simulations %}
+                        {% for sim in simulations %}
+                        <tr>
+                            <td><strong>#{{ sim.id }}</strong></td>
+                            <td>{{ sim.crop.name if sim.crop else 'N/A' }}</td>
+                            <td>{{ sim.model_type or 'N/A' }}</td>
+                            <td>{{ sim.initial_moisture }}% → {{ sim.target_moisture }}%</td>
+                            <td>{{ sim.total_time or 'N/A' }}</td>
+                            <td>{{ sim.total_energy or 'N/A' }}</td>
+                            <td>
+                                <span class="status-badge status-{{ sim.status }}">
+                                    {{ sim.status.upper() }}
+                                </span>
+                            </td>
+                            <td>{{ sim.created_at.strftime('%Y-%m-%d %H:%M') if sim.created_at else 'N/A' }}</td>
+                            <td>
+                                <span class="comment-icon" onclick="openCommentModal({{ sim.id }})" title="Add/View Comments">
+                                    💬 <span id="commentCount{{ sim.id }}">0</span>
+                                </span>
+                            </td>
+                            <td>
+                                {% if sim.status == 'complete' %}
+                                <a href="/results/{{ sim.id }}" class="btn btn-sm btn-primary">View</a>
+                                {% endif %}
+                                <button class="btn btn-sm btn-danger" onclick="deleteSimulation({{ sim.id }})">Delete</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted">
+                                No simulations found. <a href="/simulation">Run your first simulation!</a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            
+            <div class="mt-4">
+                <a href="/simulation" class="btn btn-success btn-lg">🚀 New Simulation</a>
+                <a href="/" class="btn btn-secondary btn-lg">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comment Modal -->
+    <div class="modal fade" id="commentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #f57c00 0%, #ff6f00 100%); color: white;">
+                    <h5 class="modal-title">💬 Simulation Comments & Reviews</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="commentsList" class="mb-3">
+                        <!-- Comments will be loaded here -->
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6>Add New Comment</h6>
+                    <form id="commentForm">
+                        <input type="hidden" id="commentSimId" name="simulation_id">
+                        <div class="mb-3">
+                            <label class="form-label">Your Name:</label>
+                            <input type="text" class="form-control" name="author" required placeholder="Enter your name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Rating:</label>
+                            <select class="form-select" name="rating">
+                                <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                                <option value="4">⭐⭐⭐⭐ Good</option>
+                                <option value="3" selected>⭐⭐⭐ Average</option>
+                                <option value="2">⭐⭐ Fair</option>
+                                <option value="1">⭐ Poor</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Comment/Review:</label>
+                            <textarea class="form-control" name="comment" rows="4" required placeholder="Enter your comments, observations, or review..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">💾 Save Comment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentSimId = null;
+        
+        async function openCommentModal(simId) {
+            currentSimId = simId;
+            document.getElementById('commentSimId').value = simId;
+            
+            // Load existing comments
+            await loadComments(simId);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('commentModal'));
+            modal.show();
+        }
+        
+        async function loadComments(simId) {
+            try {
+                const response = await fetch(`/api/simulation/${simId}/comments`);
+                const comments = await response.json();
+                
+                const commentsList = document.getElementById('commentsList');
+                
+                if (comments.length === 0) {
+                    commentsList.innerHTML = '<p class="text-muted">No comments yet. Be the first to add one!</p>';
+                } else {
+                    commentsList.innerHTML = comments.map(c => `
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <strong>${c.author}</strong>
+                                    <small class="text-muted">${new Date(c.created_at).toLocaleString()}</small>
+                                </div>
+                                <div class="my-2">
+                                    ${'⭐'.repeat(c.rating)} ${c.rating}/5
+                                </div>
+                                <p class="mb-0">${c.comment}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                // Update comment count
+                document.getElementById('commentCount' + simId).textContent = comments.length;
+                
+            } catch (error) {
+                console.error('Error loading comments:', error);
+            }
+        }
+        
+        // Handle comment form submission
+        document.getElementById('commentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await fetch('/api/comments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    // Reload comments
+                    await loadComments(currentSimId);
+                    
+                    // Clear form
+                    this.reset();
+                    document.getElementById('commentSimId').value = currentSimId;
+                    
+                    alert('✅ Comment saved successfully!');
+                } else {
+                    alert('❌ Error saving comment');
+                }
+            } catch (error) {
+                console.error('Error saving comment:', error);
+                alert('❌ Error saving comment');
+            }
+        });
+        
+        function deleteSimulation(simId) {
+            if (confirm('Are you sure you want to delete this simulation?')) {
+                // TODO: Implement delete functionality
+                alert('Delete functionality will be implemented');
+            }
+        }
+        
+        // Load comment counts on page load
+        window.addEventListener('DOMContentLoaded', async function() {
+            {% if simulations %}
+            {% for sim in simulations %}
+            try {
+                const response = await fetch('/api/simulation/{{ sim.id }}/comments');
+                const comments = await response.json();
+                document.getElementById('commentCount{{ sim.id }}').textContent = comments.length;
+            } catch (error) {
+                console.error('Error loading comment count for sim {{ sim.id }}');
+            }
+            {% endfor %}
+            {% endif %}
+        });
+    </script>
+</body>
+</html>

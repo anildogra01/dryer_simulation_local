@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grain Dryer Simulation System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        .user-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-info .user-name {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .user-info .btn-logout {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            text-decoration: none;
+        }
+        
+        .user-info .btn-logout:hover {
+            background: #c82333;
+        }
+        
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header-section {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+        }
+        
+        .header-section h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .header-section p {
+            font-size: 1.4rem;
+            color: #666;
+            margin: 0;
+        }
+        
+        .navigation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .nav-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .nav-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        
+        .nav-card-icon {
+            font-size: 4.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .nav-card h2 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .nav-card p {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .nav-card .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-card .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+        }
+        
+        /* Color coding for different sections */
+        .simulation-card .nav-card-icon { color: #667eea; }
+        .crop-card .nav-card-icon { color: #2d7a3e; }
+        .analysis-card .nav-card-icon { color: #f57c00; }
+        .reporting-card .nav-card-icon { color: #d32f2f; }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .footer a {
+            color: white;
+            text-decoration: underline;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .badge-new {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ff4757;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- User info will be added here by JavaScript -->
+    <div id="userInfoContainer"></div>
+    
+    <div class="main-container">
+        <!-- Header Section -->
+        <div class="header-section">
+            <h1>🌾 Grain Dryer Simulation System</h1>
+            <p>Advanced Modeling & Analysis Platform</p>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-number" id="simCount">--</div>
+                    <div class="stat-label">Total Simulations</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="cropCount">--</div>
+                    <div class="stat-label">Grain Types</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">4</div>
+                    <div class="stat-label">Drying Models</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Grid -->
+        <div class="navigation-grid" id="navigationGrid" style="display: none;">
+            <!-- Will be shown only when logged in -->
+            <!-- 1. Run Simulation -->
+            <div class="nav-card simulation-card" onclick="window.location.href='/simulation'">
+                <div class="nav-card-icon">🚀</div>
+                <h2>Run Simulation</h2>
+                <p>Execute grain drying simulations with multiple models (Thompson, Page, Henderson & Pabis, Exponential). Real-time monitoring with gradient analysis.</p>
+                <button class="btn">Start Simulation</button>
+            </div>
+
+            <!-- 2. Crop Management -->
+            <div class="nav-card crop-card" onclick="window.location.href='/crop_master'">
+                <div class="nav-card-icon">🌾</div>
+                <h2>Crop Management</h2>
+                <p>Manage grain types and their properties. Add custom crops, set moisture parameters, and configure drying characteristics.</p>
+                <button class="btn">Manage Crops</button>
+            </div>
+
+            <!-- 3. Historic Analysis -->
+            <div class="nav-card analysis-card" onclick="window.location.href='/history'">
+                <div class="nav-card-icon">📊</div>
+                <h2>Historic Analysis</h2>
+                <p>View and analyze past simulations. Compare different runs, track performance trends, and optimize drying parameters.</p>
+                <button class="btn">View History</button>
+            </div>
+
+            <!-- 4. Reporting -->
+            <div class="nav-card reporting-card" onclick="window.location.href='/reports'">
+                <span class="badge-new">NEW</span>
+                <div class="nav-card-icon">📄</div>
+                <h2>Reports</h2>
+                <p>Generate comprehensive reports with graphs, equations, and analysis. Export to PDF for documentation and research.</p>
+                <button class="btn">Generate Reports</button>
+            </div>
+        </div>
+
+        <!-- Login Prompt (shown when not logged in) -->
+        <div class="login-prompt" id="loginPrompt" style="display: block;">
+            <div style="background: white; border-radius: 20px; padding: 60px; text-align: center; box-shadow: 0 15px 50px rgba(0,0,0,0.3);">
+                <h2 style="font-size: 3rem; margin-bottom: 20px;">🔐</h2>
+                <h2 style="color: #667eea; margin-bottom: 15px;">Welcome to Grain Dryer System</h2>
+                <p style="font-size: 1.3rem; color: #666; margin-bottom: 30px;">
+                    Please sign in to access all features and start running simulations
+                </p>
+                <div>
+                    <a href="/login" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 50px; border-radius: 10px; text-decoration: none; font-size: 1.3rem; font-weight: bold; display: inline-block;">
+                        🔐 Sign In
+                    </a>
+                </div>
+                <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid #e0e0e0;">
+                    <p style="color: #999; font-size: 0.95rem;">
+                        🔑 Default Admin: <strong>username:</strong> admin | <strong>password:</strong> admin123
+                    </p>
+                    <p style="color: #999; font-size: 0.9rem; margin-top: 10px;">
+                        New user? Just enter your desired username and password, and you'll be guided to create an account.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Grain Dryer Simulation System v2.0 | 
+                System Status: <span style="color: #28a745;">●</span> Online
+            </p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">
+                <a href="/api/test">API Test</a> | 
+                <a href="/settings" id="settingsLink" style="display: none;">⚙️ Settings</a> |
+                <a href="https://docs.claude.com" target="_blank">Documentation</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // IMMEDIATE login check - runs before anything else
+        (async function() {
+            try {
+                const response = await fetch('/api/current_user');
+                const data = await response.json();
+                
+                // If not logged in, redirect to login
+                if (!data.logged_in) {
+                    window.location.replace('/login');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking login:', error);
+                window.location.replace('/login');
+            }
+        })();
+        
+        // Prevent back button after logout
+        window.history.pushState(null, "", window.location.href);
+        window.onpopstate = function() {
+            window.history.pushState(null, "", window.location.href);
+        };
+        
+        // Session timeout after 10 minutes of inactivity
+        let inactivityTimer;
+        
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                // Logout after 10 minutes (600000 ms)
+                fetch('/logout').then(() => {
+                    alert('⏱️ Session expired due to inactivity. Please sign in again.');
+                    window.location.href = '/login';
+                });
+            }, 600000); // 10 minutes
+        }
+        
+        // Track user activity
+        document.addEventListener('mousemove', resetInactivityTimer);
+        document.addEventListener('keypress', resetInactivityTimer);
+        document.addEventListener('click', resetInactivityTimer);
+        document.addEventListener('scroll', resetInactivityTimer);
+        
+        // Start the timer
+        resetInactivityTimer();
+        
+        // Check if user is logged in
+        (async function() {
+            try {
+                const response = await fetch('/api/current_user');
+                const data = await response.json();
+                
+                const userInfoContainer = document.getElementById('userInfoContainer');
+                const navigationGrid = document.getElementById('navigationGrid');
+                const loginPrompt = document.getElementById('loginPrompt');
+                const settingsLink = document.getElementById('settingsLink');
+                
+                if (data.logged_in) {
+                    // User is logged in
+                    // Show user info in top right corner
+                    userInfoContainer.innerHTML = `
+                        <div class="user-info">
+                            <span class="user-name">👤 ${data.user.full_name || data.user.username}</span>
+                            ${data.user.is_admin ? '<span style="background: #ff4757; color: white; padding: 3px 10px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px;">ADMIN</span>' : ''}
+                            <a href="/logout" class="btn-logout">Logout</a>
+                        </div>
+                    `;
+                    
+                    // Show navigation cards, hide login prompt
+                    navigationGrid.style.display = 'grid';
+                    loginPrompt.style.display = 'none';
+                    
+                    // Show settings link for admins only
+                    if (data.user.is_admin) {
+                        settingsLink.style.display = 'inline';
+                    } else {
+                        settingsLink.style.display = 'none';
+                    }
+                } else {
+                    // User is not logged in
+                    // Don't show anything in top right
+                    userInfoContainer.innerHTML = '';
+                    
+                    // Hide navigation, show login prompt
+                    navigationGrid.style.display = 'none';
+                    loginPrompt.style.display = 'block';
+                    
+                    // Hide settings link
+                    settingsLink.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error checking login status:', error);
+            }
+        })();
+        
+        // Apply saved settings from localStorage
+        (function() {
+            const saved = localStorage.getItem('grainDryerSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                
+                // Apply colors
+                if (settings.colors) {
+                    document.documentElement.style.setProperty('--primary-color', settings.colors.primary);
+                    document.documentElement.style.setProperty('--secondary-color', settings.colors.secondary);
+                    // Update gradients
+                    const gradientElements = document.querySelectorAll('body, .header-section');
+                    gradientElements.forEach(el => {
+                        if (el.tagName === 'BODY') {
+                            el.style.background = `linear-gradient(135deg, ${settings.colors.primary} 0%, ${settings.colors.secondary} 100%)`;
+                        }
+                    });
+                }
+                
+                // Apply fonts
+                if (settings.fonts) {
+                    document.body.style.fontFamily = settings.fonts.body;
+                    document.body.style.fontSize = settings.fonts.baseSize;
+                    const headers = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    headers.forEach(h => {
+                        h.style.fontFamily = settings.fonts.header;
+                    });
+                }
+                
+                // Apply titles
+                if (settings.titles) {
+                    const h1 = document.querySelector('.header-section h1');
+                    const subtitle = document.querySelector('.header-section p');
+                    if (h1) h1.textContent = settings.icons?.main ? settings.icons.main + ' ' + settings.titles.home : settings.titles.home;
+                    if (subtitle) subtitle.textContent = settings.titles.homeSubtitle;
+                }
+                
+                // Apply icons
+                if (settings.icons) {
+                    // Update navigation card icons
+                    const cards = document.querySelectorAll('.nav-card');
+                    if (cards[0]) cards[0].querySelector('.nav-card-icon').textContent = settings.icons.simulation;
+                    if (cards[1]) cards[1].querySelector('.nav-card-icon').textContent = settings.icons.crop;
+                    if (cards[2]) cards[2].querySelector('.nav-card-icon').textContent = settings.icons.history;
+                    if (cards[3]) cards[3].querySelector('.nav-card-icon').textContent = settings.icons.reports;
+                    
+                    // Update footer settings link
+                    const settingsLink = document.querySelector('a[href="/settings"]');
+                    if (settingsLink) {
+                        settingsLink.textContent = settings.icons.settings + ' Settings';
+                    }
+                }
+            }
+        })();
+        
+        // Load statistics from API
+        async function loadStats() {
+            try {
+                // Get simulation count
+                const historyResponse = await fetch('/api/history');
+                if (historyResponse.ok) {
+                    const history = await historyResponse.json();
+                    document.getElementById('simCount').textContent = history.length;
+                }
+                
+                // Get crop count
+                const cropsResponse = await fetch('/api/crops');
+                if (cropsResponse.ok) {
+                    const crops = await cropsResponse.json();
+                    document.getElementById('cropCount').textContent = crops.length;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('simCount').textContent = '0';
+                document.getElementById('cropCount').textContent = '0';
+            }
+        }
+        
+        // Load stats when page loads
+        window.addEventListener('DOMContentLoaded', loadStats);
+        
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '1') window.location.href = '/simulation';
+            if (e.key === '2') window.location.href = '/crop_master';
+            if (e.key === '3') window.location.href = '/history';
+            if (e.key === '4') window.location.href = '/reports';
+        });
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

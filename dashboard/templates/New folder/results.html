@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation Results - Grain Dryer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        .results-header {
+            background: linear-gradient(135deg, #1a5490 0%, #2d7a3e 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-left: 4px solid #1a5490;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1a5490;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .graph-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <!-- Header -->
+        <div class="results-header">
+            <h1>✓ Simulation Complete</h1>
+            <p class="mb-0"><strong>User:</strong> {{ user_info.user_name }}</p>
+            <p class="mb-0"><strong>Project:</strong> {{ user_info.project_name }}</p>
+            <p class="mb-0"><strong>Address:</strong> {{ user_info.address }}</p>
+        </div>
+
+        <!-- Summary Statistics -->
+        <h2>Results Summary</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ "%.2f"|format(summary.final_moisture_pct) }}%</div>
+                    <div class="stat-label">Final Moisture Content</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ "%.1f"|format(summary.total_time_hr) }} hrs</div>
+                    <div class="stat-label">Total Drying Time</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ "%.1f"|format(summary.moisture_removed_pct) }}%</div>
+                    <div class="stat-label">Moisture Removed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Parameters Table -->
+        <h2 class="mt-4">Input Parameters</h2>
+        <table class="table table-striped table-bordered">
+            <thead class="table-primary">
+                <tr>
+                    <th>Parameter</th>
+                    <th>Value</th>
+                    <th>Units</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Crop Type</strong></td>
+                    <td>{{ crop_name }}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><strong>Initial Moisture</strong></td>
+                    <td>{{ "%.1f"|format(input_params.initial_moisture) }}</td>
+                    <td>%</td>
+                </tr>
+                <tr>
+                    <td><strong>Grain Temperature</strong></td>
+                    <td>{{ "%.1f"|format(input_params.grain_temp) }}</td>
+                    <td>°F</td>
+                </tr>
+                <tr>
+                    <td><strong>Air Temperature</strong></td>
+                    <td>{{ "%.1f"|format(input_params.air_temp) }}</td>
+                    <td>°F</td>
+                </tr>
+                <tr>
+                    <td><strong>Relative Humidity</strong></td>
+                    <td>{{ "%.1f"|format(input_params.rel_humidity) }}</td>
+                    <td>%</td>
+                </tr>
+                <tr>
+                    <td><strong>Air Flow Rate</strong></td>
+                    <td>{{ "%.1f"|format(input_params.air_flow_cfm) }}</td>
+                    <td>CFM</td>
+                </tr>
+                <tr>
+                    <td><strong>Bed Depth</strong></td>
+                    <td>{{ "%.1f"|format(input_params.bed_depth) }}</td>
+                    <td>ft</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Moisture vs Time Graph -->
+        <h2 class="mt-4">Drying Curve</h2>
+        <div class="graph-container">
+            <div id="moistureGraph"></div>
+        </div>
+
+        <!-- Time Series Data Table -->
+        <h2 class="mt-4">Detailed Results</h2>
+        <table class="table table-sm table-striped table-bordered">
+            <thead class="table-success">
+                <tr>
+                    <th>Time (hr)</th>
+                    <th>Avg Moisture (%)</th>
+                    <th>Energy (BTU)</th>
+                    <th>Water Removed (lb)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for point in time_series %}
+                <tr>
+                    <td>{{ "%.2f"|format(point.time_hr) }}</td>
+                    <td>{{ "%.2f"|format(point.avg_moisture_pct) }}</td>
+                    <td>{{ "%.2f"|format(point.energy_btu) }}</td>
+                    <td>{{ "%.2f"|format(point.water_removed_lb) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Download PDF Button -->
+        <div class="text-center my-4">
+            <a href="{{ url_for('download_pdf', sim_id=sim_id) }}" class="btn btn-lg btn-primary">
+                📄 Download PDF Report
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-lg btn-secondary">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Create moisture vs time graph with Plotly
+        var times = {{ times|tojson }};
+        var moistures = {{ moistures|tojson }};
+
+        var trace = {
+            x: times,
+            y: moistures,
+            mode: 'lines+markers',
+            type: 'scatter',
+            name: 'Moisture Content',
+            line: {color: '#1a5490', width: 3},
+            marker: {size: 8, color: '#1a5490'}
+        };
+
+        var layout = {
+            title: 'Moisture Content vs Time',
+            xaxis: {title: 'Time (hours)', gridcolor: '#e0e0e0'},
+            yaxis: {title: 'Moisture Content (%)', gridcolor: '#e0e0e0'},
+            plot_bgcolor: '#f8f9fa',
+            paper_bgcolor: 'white',
+            font: {family: 'Arial, sans-serif', size: 12}
+        };
+
+        Plotly.newPlot('moistureGraph', [trace], layout, {responsive: true});
+    </script>
+</body>
+</html>

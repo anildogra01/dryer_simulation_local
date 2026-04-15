@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grain Dryer Simulation Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .main-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .left-panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .right-panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 20px;
+            height: 100%;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+        .header h1 {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+        .section-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin: 20px 0 10px 0;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 3px;
+            font-size: 0.85rem;
+        }
+        .form-control, .form-select {
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 6px;
+            font-size: 0.9rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-calculate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 40px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .btn-calculate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .btn-action {
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        .btn-stop { background: #dc3545; color: white; border: none; }
+        .btn-restart { background: #ffc107; color: #333; border: none; }
+        
+        /* Monitoring Window */
+        .monitor-window {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            min-height: 400px;
+        }
+        .monitor-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .status-idle { background: #6c757d; color: white; }
+        .status-running { background: #28a745; color: white; animation: pulse 1.5s infinite; }
+        .status-complete { background: #007bff; color: white; }
+        .status-error { background: #dc3545; color: white; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            margin: 15px 0;
+        }
+        .progress {
+            height: 25px;
+            border-radius: 10px;
+        }
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-weight: bold;
+        }
+        
+        /* Stats Cards */
+        .stats-row {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            flex: 1;
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        /* Iteration Table */
+        .iteration-table {
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .iteration-table table {
+            font-size: 0.85rem;
+        }
+        .iteration-table thead {
+            position: sticky;
+            top: 0;
+            background: #667eea;
+            color: white;
+            z-index: 10;
+        }
+        .iteration-table tbody tr:hover {
+            background: #f0f0f0;
+        }
+        
+        /* Graph Container */
+        .graph-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="row">
+            <!-- LEFT PANEL: Input Form -->
+            <div class="col-lg-5">
+                <div class="left-panel">
+                    <div class="header">
+                        <h1>🌾 GRAIN DRYER SIMULATION</h1>
+                        <small class="text-muted">Real-Time Monitoring & Control</small>
+                    </div>
+
+                    <form id="simulationForm">
+                        <!-- Model Selection -->
+                        <div class="section-title">🔬 MODEL & GRAIN SELECTION</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Drying Model:</label>
+                                    <select class="form-select" name="model_type" required>
+                                        <option value="">-- Select Model --</option>
+                                        <option value="thompson">Thompson Model</option>
+                                        <option value="page">Page Model</option>
+                                        <option value="henderson_pabis">Henderson & Pabis Model</option>
+                                        <option value="exponential">Exponential Model</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Grain Type:</label>
+                                    <select class="form-select" name="crop_id" id="cropSelect" required>
+                                        <option value="">Loading crops...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Crop Parameters Display -->
+                        <div id="cropParamsDisplay" style="display: none; background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #667eea;">
+                            <h6 style="color: #667eea; margin-bottom: 10px;">📋 Crop Properties</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small><strong>Default Initial Moisture:</strong> <span id="cropInitMoisture">--</span>%</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small><strong>Default Target Moisture:</strong> <span id="cropTargetMoisture">--</span>%</small>
+                                </div>
+                                <div class="col-md-12 mt-2">
+                                    <small><strong>Description:</strong> <span id="cropDescription">--</span></small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Credentials -->
+                        <div class="section-title">👤 USER CREDENTIALS</div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label class="form-label">Name:</label>
+                                    <input type="text" class="form-control" name="user_name" value="User">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Project:</label>
+                                    <input type="text" class="form-control" name="project_name" value="Grain Drying">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Address:</label>
+                                    <input type="text" class="form-control" name="address" value="Local">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Parameters -->
+                        <div class="section-title">⚙️ PROCESS PARAMETERS</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Initial Moisture (%):</label>
+                                    <input type="number" class="form-control" name="initial_moisture" id="initialMoisture" step="0.1" value="25.0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Target Moisture (%):</label>
+                                    <input type="number" class="form-control" name="target_moisture" id="targetMoisture" step="0.1" value="14.0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Grain Temp (°F):</label>
+                                    <input type="number" class="form-control" name="grain_temp" step="0.1" value="70.0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Air Temp (°F):</label>
+                                    <input type="number" class="form-control" name="air_temp" step="0.1" value="110.0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Air RH (%):</label>
+                                    <input type="number" class="form-control" name="air_rh" step="0.1" value="30.0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Air Flow (CFM):</label>
+                                    <input type="number" class="form-control" name="air_flow_rate" step="0.1" value="500.0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Grain Flow (kg/hr):</label>
+                                    <input type="number" class="form-control" name="grain_flow_rate" step="0.1">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Width (m):</label>
+                                    <input type="number" class="form-control" name="width" step="0.1">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Length (m):</label>
+                                    <input type="number" class="form-control" name="length" step="0.1" value="5.0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dryer Size Configuration -->
+                        <div class="section-title">📐 DRYER DIMENSIONS</div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Dryer Width (ft):</label>
+                                    <input type="number" class="form-control" name="dryer_width" step="0.1" value="10.0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Dryer Length (ft):</label>
+                                    <input type="number" class="form-control" name="dryer_length" step="0.1" value="20.0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Bed Depth (ft):</label>
+                                    <input type="number" class="form-control" name="bed_depth" step="0.1" value="2.0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div style="background: #e8f5e9; padding: 10px; border-radius: 5px; border-left: 4px solid #4caf50;">
+                                    <small><strong>📊 Calculated Volume:</strong> <span id="dryerVolume">400.0</span> ft³</small><br>
+                                    <small><strong>⚖️ Grain Capacity (approx):</strong> <span id="grainCapacity">800</span> bushels</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <button type="submit" class="btn btn-calculate">🚀 START SIMULATION</button>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-action btn-stop w-100" onclick="stopSimulation()">⏹️ STOP</button>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="reset" class="btn btn-action btn-restart w-100">↻ RESTART</button>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="/" class="btn btn-action w-100" style="background: #6c757d; color: white; text-decoration: none; padding: 10px;">🏠 HOME</a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Quick Links -->
+                    <div class="text-center mt-3">
+                        <a href="/crop_master" class="btn btn-sm btn-outline-primary">📊 Manage Crops</a>
+                        <a href="/history" class="btn btn-sm btn-outline-secondary">📁 History</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: Live Monitoring -->
+            <div class="col-lg-7">
+                <div class="right-panel">
+                    <!-- Status Header -->
+                    <div class="monitor-title">
+                        <span>📊 LIVE MONITORING</span>
+                        <span class="status-badge status-idle" id="statusBadge">IDLE</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress-container">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar">
+                                0%
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Stats -->
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-value" id="currentTime">0.00</div>
+                            <div class="stat-label">Time (hr)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="currentMoisture">--</div>
+                            <div class="stat-label">Moisture (%)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="currentEnergy">0</div>
+                            <div class="stat-label">Energy (BTU)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="currentWater">0</div>
+                            <div class="stat-label">Water (lb)</div>
+                        </div>
+                    </div>
+
+                    <!-- Live Graph -->
+                    <div class="graph-container">
+                        <div id="liveGraph" style="height: 300px;"></div>
+                    </div>
+
+                    <!-- Iteration Table -->
+                    <div class="section-title">📋 ITERATION DATA</div>
+                    <div class="iteration-table">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Iter</th>
+                                    <th>Time (hr)</th>
+                                    <th>Moisture (%)</th>
+                                    <th>Energy (BTU)</th>
+                                    <th>Water (lb)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="iterationTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">
+                                        Waiting for simulation to start...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Prevent back button after logout
+        window.history.pushState(null, "", window.location.href);
+        window.onpopstate = function() {
+            window.history.pushState(null, "", window.location.href);
+        };
+        
+        // Session timeout after 10 minutes of inactivity
+        let inactivityTimer;
+        
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                fetch('/logout').then(() => {
+                    alert('⏱️ Session expired due to inactivity. Please sign in again.');
+                    window.location.href = '/login';
+                });
+            }, 600000); // 10 minutes
+        }
+        
+        // Track user activity
+        document.addEventListener('mousemove', resetInactivityTimer);
+        document.addEventListener('keypress', resetInactivityTimer);
+        document.addEventListener('click', resetInactivityTimer);
+        document.addEventListener('scroll', resetInactivityTimer);
+        resetInactivityTimer();
+        
+        // Apply saved settings
+        (function() {
+            const saved = localStorage.getItem('grainDryerSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                
+                // Apply fonts
+                if (settings.fonts) {
+                    document.body.style.fontFamily = settings.fonts.body;
+                    document.body.style.fontSize = settings.fonts.baseSize;
+                    const headers = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    headers.forEach(h => h.style.fontFamily = settings.fonts.header);
+                }
+                
+                // Apply simulation title and icon
+                if (settings.titles?.simulation) {
+                    const h1 = document.querySelector('.header h1');
+                    if (h1 && settings.icons?.main) {
+                        h1.textContent = settings.icons.main + ' ' + settings.titles.simulation;
+                    } else if (h1) {
+                        h1.textContent = settings.titles.simulation;
+                    }
+                }
+                
+                // Apply home button icon
+                if (settings.icons?.home) {
+                    const homeBtn = document.querySelector('a[href="/"]');
+                    if (homeBtn) {
+                        homeBtn.innerHTML = settings.icons.home + ' Back to Home';
+                    }
+                }
+            }
+        })();
+        
+        // Initialize live graph
+        let timeData = [];
+        let moistureData = [];
+        let currentSimulationId = null;
+        
+        const graphLayout = {
+            title: 'Moisture Content vs Time',
+            xaxis: { title: 'Time (hours)' },
+            yaxis: { title: 'Moisture Content (%)' },
+            margin: { t: 40, b: 40, l: 50, r: 20 }
+        };
+        
+        Plotly.newPlot('liveGraph', [{
+            x: timeData,
+            y: moistureData,
+            mode: 'lines+markers',
+            type: 'scatter',
+            line: { color: '#667eea', width: 3 },
+            marker: { size: 8 }
+        }], graphLayout);
+
+        // Load crops on page load
+        async function loadCrops() {
+            try {
+                const response = await fetch('/api/crops');
+                const crops = await response.json();
+                
+                const select = document.getElementById('cropSelect');
+                select.innerHTML = '<option value="">-- Select Grain --</option>';
+                
+                crops.forEach(crop => {
+                    const option = document.createElement('option');
+                    option.value = crop.id;
+                    option.textContent = crop.name;
+                    option.dataset.initialMoisture = crop.initial_moisture;
+                    option.dataset.targetMoisture = crop.target_moisture;
+                    option.dataset.description = crop.description || '';
+                    select.appendChild(option);
+                });
+                
+                // Auto-fill moisture values and show crop params when crop is selected
+                select.addEventListener('change', function() {
+                    const selected = this.options[this.selectedIndex];
+                    const display = document.getElementById('cropParamsDisplay');
+                    
+                    if (selected.value) {
+                        // Show crop parameters
+                        display.style.display = 'block';
+                        document.getElementById('cropInitMoisture').textContent = selected.dataset.initialMoisture || '--';
+                        document.getElementById('cropTargetMoisture').textContent = selected.dataset.targetMoisture || '--';
+                        document.getElementById('cropDescription').textContent = selected.dataset.description || 'No description available';
+                        
+                        // Auto-fill moisture values
+                        if (selected.dataset.initialMoisture) {
+                            document.getElementById('initialMoisture').value = selected.dataset.initialMoisture;
+                        }
+                        if (selected.dataset.targetMoisture) {
+                            document.getElementById('targetMoisture').value = selected.dataset.targetMoisture;
+                        }
+                    } else {
+                        display.style.display = 'none';
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading crops:', error);
+                document.getElementById('cropSelect').innerHTML = '<option value="">Error loading crops</option>';
+            }
+        }
+
+        // Handle form submission - show modal instead of submitting directly
+        document.getElementById('simulationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate inputs before showing modal
+            const validation = validateInputs();
+            if (!validation.valid) {
+                alert('❌ Input Validation Error:\n\n' + validation.errors.join('\n'));
+                return;
+            }
+            
+            // Show processing method modal
+            const modal = new bootstrap.Modal(document.getElementById('processingMethodModal'));
+            modal.show();
+        });
+        
+        // Comprehensive input validation
+        function validateInputs() {
+            const errors = [];
+            
+            // Get all form values
+            const cropId = document.querySelector('[name="crop_id"]').value;
+            const modelType = document.querySelector('[name="model_type"]').value;
+            const initialMoisture = parseFloat(document.querySelector('[name="initial_moisture"]').value);
+            const targetMoisture = parseFloat(document.querySelector('[name="target_moisture"]').value);
+            const grainTemp = parseFloat(document.querySelector('[name="grain_temp"]').value);
+            const airTemp = parseFloat(document.querySelector('[name="air_temp"]').value);
+            const airRH = parseFloat(document.querySelector('[name="air_rh"]').value);
+            const airFlow = parseFloat(document.querySelector('[name="air_flow_rate"]').value);
+            const grainFlowRate = parseFloat(document.querySelector('[name="grain_flow_rate"]').value) || 0;
+            const dryerWidth = parseFloat(document.querySelector('[name="dryer_width"]').value);
+            const dryerLength = parseFloat(document.querySelector('[name="dryer_length"]').value);
+            const bedDepth = parseFloat(document.querySelector('[name="bed_depth"]').value);
+            
+            // 1. Required fields
+            if (!cropId) errors.push('• Please select a grain type');
+            if (!modelType) errors.push('• Please select a drying model');
+            
+            // 2. Moisture validation
+            if (initialMoisture <= 0 || initialMoisture > 100) {
+                errors.push('• Initial moisture must be between 0% and 100%');
+            }
+            if (targetMoisture <= 0 || targetMoisture > 100) {
+                errors.push('• Target moisture must be between 0% and 100%');
+            }
+            if (initialMoisture <= targetMoisture) {
+                errors.push('• Initial moisture (' + initialMoisture + '%) must be HIGHER than target moisture (' + targetMoisture + '%)');
+            }
+            if (initialMoisture - targetMoisture > 30) {
+                errors.push('• WARNING: Large moisture reduction (' + (initialMoisture - targetMoisture).toFixed(1) + '%) may require very long drying time');
+            }
+            
+            // 3. Temperature validation
+            if (grainTemp < 32 || grainTemp > 150) {
+                errors.push('• Grain temperature should be between 32°F and 150°F (realistic range)');
+            }
+            if (airTemp < 60 || airTemp > 250) {
+                errors.push('• Air temperature should be between 60°F and 250°F (safe drying range)');
+            }
+            if (airTemp <= grainTemp) {
+                errors.push('• Air temperature (' + airTemp + '°F) must be HIGHER than grain temperature (' + grainTemp + '°F)');
+            }
+            if (airTemp - grainTemp < 10) {
+                errors.push('• WARNING: Small temperature difference (' + (airTemp - grainTemp) + '°F) will result in very slow drying');
+            }
+            if (airTemp > 180 && targetMoisture < 14) {
+                errors.push('• WARNING: High temperature (' + airTemp + '°F) with low target moisture may damage grain quality');
+            }
+            
+            // 4. Relative humidity validation
+            if (airRH < 10 || airRH > 90) {
+                errors.push('• Relative humidity should be between 10% and 90% (realistic range)');
+            }
+            if (airRH > 70) {
+                errors.push('• WARNING: High relative humidity (' + airRH + '%) will significantly slow drying');
+            }
+            
+            // 5. Air flow validation
+            if (airFlow <= 0) {
+                errors.push('• Air flow rate must be greater than 0 CFM');
+            }
+            if (airFlow < 100) {
+                errors.push('• WARNING: Low air flow (' + airFlow + ' CFM) may result in very slow drying');
+            }
+            
+            // 6. Dryer dimensions validation
+            if (dryerWidth <= 0 || dryerLength <= 0 || bedDepth <= 0) {
+                errors.push('• All dryer dimensions must be greater than 0');
+            }
+            if (dryerWidth < 3 || dryerWidth > 50) {
+                errors.push('• Dryer width should be between 3 ft and 50 ft (typical range)');
+            }
+            if (dryerLength < 5 || dryerLength > 100) {
+                errors.push('• Dryer length should be between 5 ft and 100 ft (typical range)');
+            }
+            if (bedDepth < 0.5 || bedDepth > 10) {
+                errors.push('• Bed depth should be between 0.5 ft and 10 ft (typical range)');
+            }
+            if (bedDepth > 5) {
+                errors.push('• WARNING: Deep beds (' + bedDepth + ' ft) require high airflow and may have poor drying uniformity');
+            }
+            
+            // 7. Grain flow rate vs dryer size validation
+            if (grainFlowRate > 0) {
+                const dryerVolume = dryerWidth * dryerLength * bedDepth;
+                const grainMassLb = dryerVolume * 50; // Approx 50 lb/ft³ for grain
+                const grainMassKg = grainMassLb * 0.453592;
+                const residenceTime = grainMassKg / grainFlowRate; // hours
+                
+                if (residenceTime < 2) {
+                    errors.push('• WARNING: Grain flow rate is too high - residence time is only ' + residenceTime.toFixed(1) + ' hours. Minimum 2 hours recommended.');
+                }
+            }
+            
+            // 8. Air flow vs bed depth validation (minimum CFM per bushel)
+            const dryerVolume = dryerWidth * dryerLength * bedDepth;
+            const bushels = dryerVolume * 2; // Approx 2 bushels per ft³
+            const cfmPerBushel = airFlow / bushels;
+            
+            if (cfmPerBushel < 1) {
+                errors.push('• WARNING: Air flow is too low (' + cfmPerBushel.toFixed(2) + ' CFM/bushel). Minimum 1-2 CFM/bushel recommended for effective drying.');
+            }
+            if (cfmPerBushel > 20) {
+                errors.push('• WARNING: Air flow is very high (' + cfmPerBushel.toFixed(2) + ' CFM/bushel). May waste energy. Maximum 10-15 CFM/bushel typically sufficient.');
+            }
+            
+            return {
+                valid: errors.length === 0,
+                errors: errors
+            };
+        }
+
+        function displaySimulationResults(results) {
+            // Display final stats
+            document.getElementById('currentTime').textContent = results.total_time.toFixed(2);
+            document.getElementById('currentMoisture').textContent = results.final_moisture.toFixed(2);
+            document.getElementById('currentEnergy').textContent = results.total_energy.toFixed(0);
+            document.getElementById('currentWater').textContent = results.total_water_removed.toFixed(2);
+            
+            // Update progress bar
+            document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('progressBar').textContent = '100%';
+            
+            // Populate table and graph
+            results.iterations_data.forEach(iter => {
+                updateMonitor(
+                    iter.iteration,
+                    iter.time,
+                    iter.moisture,
+                    iter.energy,
+                    iter.water_removed
+                );
+            });
+        }
+
+        function updateMonitor(iteration, time, moisture, energy, water) {
+            // Update stats
+            document.getElementById('currentTime').textContent = time.toFixed(2);
+            document.getElementById('currentMoisture').textContent = moisture.toFixed(2);
+            document.getElementById('currentEnergy').textContent = energy.toFixed(0);
+            document.getElementById('currentWater').textContent = water.toFixed(2);
+            
+            // Update graph
+            timeData.push(time);
+            moistureData.push(moisture);
+            Plotly.update('liveGraph', {
+                x: [timeData],
+                y: [moistureData]
+            });
+            
+            // Add row to table
+            const tbody = document.getElementById('iterationTableBody');
+            const row = tbody.insertRow(0);
+            row.innerHTML = `
+                <td>${iteration}</td>
+                <td>${time.toFixed(2)}</td>
+                <td>${moisture.toFixed(2)}</td>
+                <td>${energy.toFixed(0)}</td>
+                <td>${water.toFixed(2)}</td>
+            `;
+            
+            // Update progress (assuming 12 hour max)
+            const progress = Math.min((time / 12.0) * 100, 100);
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+        }
+
+        async function stopSimulation() {
+            if (!currentSimulationId) {
+                alert('No simulation running');
+                return;
+            }
+            
+            if (confirm('Stop the simulation?')) {
+                try {
+                    const response = await fetch(`/api/simulation/${currentSimulationId}/stop`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        document.getElementById('statusBadge').textContent = 'STOPPED';
+                        document.getElementById('statusBadge').className = 'status-badge status-error';
+                    }
+                } catch (error) {
+                    console.error('Error stopping simulation:', error);
+                }
+            }
+        }
+
+        // Load crops when page loads
+        window.addEventListener('DOMContentLoaded', loadCrops);
+        
+        // Calculate dryer volume and capacity when dimensions change
+        function updateDryerCalculations() {
+            const width = parseFloat(document.querySelector('[name="dryer_width"]').value) || 0;
+            const length = parseFloat(document.querySelector('[name="dryer_length"]').value) || 0;
+            const depth = parseFloat(document.querySelector('[name="bed_depth"]').value) || 0;
+            
+            const volume = width * length * depth;
+            const capacity = Math.round(volume * 2); // Approx 2 bushels per cubic foot
+            
+            document.getElementById('dryerVolume').textContent = volume.toFixed(1);
+            document.getElementById('grainCapacity').textContent = capacity;
+        }
+        
+        // Add event listeners for dryer dimension inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            const dryerInputs = ['dryer_width', 'dryer_length', 'bed_depth'];
+            dryerInputs.forEach(name => {
+                const input = document.querySelector(`[name="${name}"]`);
+                if (input) {
+                    input.addEventListener('input', updateDryerCalculations);
+                }
+            });
+            updateDryerCalculations(); // Initial calculation
+        });
+        
+        // Method selection helper
+        function selectMethod(method) {
+            document.getElementById('method' + (method === 'regular' ? 'Regular' : 'RK4')).checked = true;
+        }
+        
+        // Confirm and run simulation from modal
+        function confirmAndRunSimulation() {
+            const method = document.querySelector('input[name="processing_method"]:checked').value;
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('processingMethodModal'));
+            modal.hide();
+            
+            // Add method to form data and submit
+            const form = document.getElementById('simulationForm');
+            let methodInput = document.getElementById('hiddenProcessingMethod');
+            if (!methodInput) {
+                methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.id = 'hiddenProcessingMethod';
+                methodInput.name = 'processing_method';
+                form.appendChild(methodInput);
+            }
+            methodInput.value = method;
+            
+            // Trigger the actual simulation
+            runSimulationWithMethod(method);
+        }
+        
+        async function runSimulationWithMethod(method) {
+            const formData = new FormData(document.getElementById('simulationForm'));
+            const data = Object.fromEntries(formData.entries());
+            data.processing_method = method;
+            
+            // Set status to running
+            document.getElementById('statusBadge').textContent = 'RUNNING (' + method.toUpperCase() + ')';
+            document.getElementById('statusBadge').className = 'status-badge status-running';
+            
+            // Clear previous data
+            timeData = [];
+            moistureData = [];
+            document.getElementById('iterationTableBody').innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Server returned non-JSON response:', text);
+                    alert('Server Error: The server returned an error page instead of JSON.\n\nThis usually means there is a Python error.\n\nCheck the Python terminal for error details.');
+                    document.getElementById('statusBadge').textContent = 'ERROR';
+                    document.getElementById('statusBadge').className = 'status-badge status-error';
+                    return;
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentSimulationId = result.simulation_id;
+                    
+                    // Display results
+                    displaySimulationResults(result.results);
+                    
+                    // Set status to complete
+                    document.getElementById('statusBadge').textContent = 'COMPLETE';
+                    document.getElementById('statusBadge').className = 'status-badge status-complete';
+                    
+                    // Redirect to results page after a moment
+                    setTimeout(() => {
+                        if (confirm('Simulation complete! View detailed results report?')) {
+                            window.location.href = '/results/' + currentSimulationId;
+                        }
+                    }, 1000);
+                } else {
+                    let errorMsg = 'Simulation failed:\n\n';
+                    
+                    // Show validation errors if present
+                    if (result.validation_errors && result.validation_errors.length > 0) {
+                        errorMsg += '❌ Validation Errors:\n';
+                        errorMsg += result.validation_errors.map(e => '  • ' + e).join('\n');
+                    } else {
+                        errorMsg += result.error || 'Unknown error';
+                    }
+                    
+                    if (result.details) {
+                        errorMsg += '\n\nDetails: ' + result.details.type;
+                        console.error('Full error details:', result.details);
+                    }
+                    
+                    alert(errorMsg);
+                    document.getElementById('statusBadge').textContent = 'ERROR';
+                    document.getElementById('statusBadge').className = 'status-badge status-error';
+                }
+                
+            } catch (error) {
+                console.error('Error running simulation:', error);
+                alert('Error running simulation: ' + error.message + '\n\nCheck browser console (F12) for details.');
+                document.getElementById('statusBadge').textContent = 'ERROR';
+                document.getElementById('statusBadge').className = 'status-badge status-error';
+            }
+        }
+    </script>
+    
+    <!-- Processing Method Modal -->
+    <div class="modal fade" id="processingMethodModal" tabindex="-1" aria-labelledby="processingMethodModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h5 class="modal-title" id="processingMethodModalLabel">⚙️ Select Processing Method</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Choose the numerical method for solving differential equations:</p>
+                    
+                    <div class="form-check mb-3 p-3" style="border: 2px solid #667eea; border-radius: 8px; cursor: pointer;" onclick="selectMethod('regular')">
+                        <input class="form-check-input" type="radio" name="processing_method" id="methodRegular" value="regular" checked>
+                        <label class="form-check-label" for="methodRegular" style="cursor: pointer;">
+                            <strong>Regular (Euler Method)</strong><br>
+                            <small class="text-muted">Simple, fast computation. Good for quick estimates and initial runs.</small>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check p-3" style="border: 2px solid #667eea; border-radius: 8px; cursor: pointer;" onclick="selectMethod('rk4')">
+                        <input class="form-check-input" type="radio" name="processing_method" id="methodRK4" value="rk4">
+                        <label class="form-check-label" for="methodRK4" style="cursor: pointer;">
+                            <strong>RK4 (Runge-Kutta 4th Order)</strong><br>
+                            <small class="text-muted">Higher accuracy, more computation. Recommended for final simulations and research.</small>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmAndRunSimulation()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                        ▶️ Run Simulation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

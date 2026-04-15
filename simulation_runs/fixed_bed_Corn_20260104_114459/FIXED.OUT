@@ -1,0 +1,75 @@
+ Reading input parameters...
+ Input read successfully:
+   XMO   =  0.250000000    
+   THIN  =   75.0000000    
+   TIN   =   110.000000    
+   DEPTH =   5.00000000    
+   TT    =   12.0000000    
+ Grid created:
+   Nodes =          40
+   DELX  =  0.125000000    
+ Initializing arrays...
+ Computed properties:
+   GA    =   2144.93115      lb/hr
+   HC    =   33.5305290      BTU/hr-ft2-F
+   XME   =   4.80249897E-02
+1                                                          U S E R  N A M E               
+                                                A D D R S S   O F   U S E R                
+                                          F I X E D  B E D  D R Y E R  M O D E L
+                                                           U S I N G  T H E
+                                            THOMPSON   THINLAYER EQUATION FOR CORN     
+
+
+
+
+
+
+
+
+
+                                                    INPUT PROPERTIES AND CONDITIONS
+
+
+
+
+  AIR TEMP(DEG F)  PROD TEMP(DEG F)   REL HUM(DECIMAL)    ABS HUM(LB/LB)   DB MC(DECIMAL) EQUIL MC(DECIMAL) AIR FLOW RATE (CFM)
+       110.0000            75.0000             0.1072             0.0060             0.2500             0.0480           500.0000
+                    2144.9312 (LB/HR)
+
+
+
+           HEAT CAPACITIES(BTU/LB)              AIR              PRODUCT          WATER VAPOR        WATER LIQUID
+                                               0.2420             0.2680             0.4500             1.0000
+
+
+
+
+                        H T COEF CONV       ATMOS PRESS      LAT HEAT EVAP    BULK DENS DRY PROD   SPEC SURF AREA
+                          33.5305            14.3000          1000.0000            38.7100           239.0000
+
+
+
+
+
+
+
+
+
+                                                            PROGRAM CONTROLS
+
+
+
+
+                             SIMULATE A DEPTH OF  5.00 FT BY INCREMENTS OF 0.1250 FT PRINTING EVERY 1.25 FT
+                             FOR A TOTAL TIME OF 12.00 HR PRINTING EVERY 2.00 HR
+                             OR UNTIL THE AVERAGE MC FALLS BELOW0.140000
+0DEPTH    0.00    1.25    2.50    3.75    5.00
+ Starting time loop...
+0TIME =  0.00                               PERCENT CONDENSATION =100.00               PERCENT ABSORPTION =  0.00
+      AVERAGE MC =0.2490              ENERGY INPUT =   78.95          H20 REMOVED =   0.20             BTU/LBH20 =  397.55
+0AIR TEMP 110.000  85.551  85.551  85.551  85.551
+0PROD TEMP 92.500  75.000  75.000  75.000  75.000
+0MC DB  0.168   0.250   0.250   0.250   0.250
+0REL HUM 0.10720 1.00000 1.00000 1.00000 1.00000
+0ABS HUM 0.00600 0.02754 0.02754 0.02754 0.02754
+  Time =    0.00  Avg MC =  0.2490

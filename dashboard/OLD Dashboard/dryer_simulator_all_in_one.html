@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grain Dryer Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(127, 140, 141, 0.4);
+        }
+
+        #simulationResults {
+            grid-column: 1 / -1;
+        }
+
+        .results-container {
+            background: white;
+        }
+
+        .results-container h3 {
+            color: #27ae60;
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .result-section h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        .value {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .value.success {
+            color: #27ae60;
+        }
+
+        .value.warning {
+            color: #e67e22;
+        }
+
+        .warnings {
+            background: #fff3cd;
+            border-left-color: #f39c12;
+        }
+
+        .warning-item {
+            padding: 8px;
+            background: white;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 3px solid #f39c12;
+        }
+
+        #loadingIndicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 9999;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌾 Grain Dryer Simulator</h1>
+            <p>Crossflow Dryer Performance Analysis</p>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>Crop Selection</h2>
+                <div class="info-box">
+                    Select a crop to load preset properties and customize parameters below.
+                </div>
+                <div class="form-group">
+                    <label for="cropSelect">Crop Type:</label>
+                    <select name="crop" id="cropSelect" required>
+                        <option value="">Loading crops...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="target_moisture">Target Moisture (% db):</label>
+                    <input type="number" name="target_moisture" id="target_moisture" 
+                           value="15" step="0.1" min="8" max="20" required>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Air Conditions</h2>
+                <div class="form-group">
+                    <label for="inlet_air_temp">Inlet Air Temperature (°F):</label>
+                    <input type="number" name="inlet_air_temp" id="inlet_air_temp" 
+                           value="180" step="1" min="60" max="250" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="inlet_air_rh">Inlet Air RH (%):</label>
+                    <input type="number" name="inlet_air_rh" id="inlet_air_rh" 
+                           value="5" step="0.1" min="0" max="100" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="airflow_cfm">Airflow (CFM):</label>
+                    <input type="number" name="airflow_cfm" id="airflow_cfm" 
+                           value="1000" step="10" min="100" required>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Grain Conditions</h2>
+                <div class="form-group">
+                    <label for="initial_grain_temp">Initial Grain Temperature (°F):</label>
+                    <input type="number" name="initial_grain_temp" id="initial_grain_temp" 
+                           value="60" step="1" min="32" max="120" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="grain_flow_bph">Grain Flow (bu/hr):</label>
+                    <input type="number" name="grain_flow_bph" id="grain_flow_bph" 
+                           value="100" step="1" min="1" required>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Dryer Dimensions</h2>
+                <div class="form-group">
+                    <label for="width">Width (ft):</label>
+                    <input type="number" name="width" id="width" 
+                           value="2.0" step="0.1" min="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="length">Length (ft):</label>
+                    <input type="number" name="length" id="length" 
+                           value="10.0" step="0.1" min="0.1" required>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" id="estimateTimeButton" class="btn-secondary">
+                        ⚡ Quick Estimate
+                    </button>
+                    <button type="button" id="runSimulationButton" class="btn-primary">
+                        ▶ Run Simulation
+                    </button>
+                </div>
+            </div>
+
+            <div id="simulationResults" class="section" style="display: none;">
+                <!-- Results will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingIndicator" style="display: none;">
+        <div class="spinner"></div>
+        <div id="loadingText">Running simulation...</div>
+    </div>
+
+    <script>
+        // API Client
+        class DryerSimulationClient {
+            constructor(apiBaseUrl = 'http://localhost:5000/api') {
+                this.apiBaseUrl = apiBaseUrl;
+            }
+
+            async makeRequest(endpoint, method = 'GET', data = null) {
+                const url = `${this.apiBaseUrl}${endpoint}`;
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+
+                if (data && method !== 'GET') {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(url, options);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'API request failed');
+                }
+
+                return result;
+            }
+
+            async getCropPresets() {
+                return await this.makeRequest('/crops/presets', 'GET');
+            }
+
+            async runCrossflowSimulation(inputs) {
+                return await this.makeRequest('/dryer/crossflow', 'POST', inputs);
+            }
+
+            async validateParameters(inputs) {
+                return await this.makeRequest('/dryer/validate', 'POST', inputs);
+            }
+
+            async estimateDryingTime(params) {
+                return await this.makeRequest('/dryer/estimate-time', 'POST', params);
+            }
+        }
+
+        // UI Functions
+        function showLoading(message = 'Loading...') {
+            const loadingDiv = document.getElementById('loadingIndicator');
+            document.getElementById('loadingText').textContent = message;
+            loadingDiv.style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingIndicator').style.display = 'none';
+        }
+
+        function displayResults(outputs) {
+            const resultsDiv = document.getElementById('simulationResults');
+            
+            const html = `
+                <div class="results-container">
+                    <h3>Simulation Results</h3>
+                    
+                    <div class="result-section">
+                        <h4>Drying Performance</h4>
+                        <div class="result-row">
+                            <span class="label">Final Moisture:</span>
+                            <span class="value">${outputs.final_moisture.toFixed(2)}% db</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="label">Moisture Removed:</span>
+                            <span class="value">${outputs.moisture_removed.toFixed(2)} points</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="label">Drying Time:</span>
+                            <span class="value">${outputs.drying_time.toFixed(2)} hours</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="label">Target Achieved:</span>
+                            <span class="value ${outputs.target_achieved ? 'success' : 'warning'}">
+                                ${outputs.target_achieved ? '✓ Yes' : '✗ No'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="result-section">
+                        <h4>Energy & Efficiency</h4>
+                        <div class="result-row">
+                            <span class="label">Energy Consumed:</span>
+                            <span class="value">${outputs.energy_consumed.toFixed(0)} BTU</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="label">Air/Grain Ratio:</span>
+                            <span class="value">${outputs.air_grain_ratio.toFixed(3)}</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="label">Heat Transfer Coef:</span>
+                            <span class="value">${outputs.heat_transfer_coeff.toFixed(2)} BTU/hr-ft²-°F</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="label">Equilibrium MC:</span>
+                            <span class="value">${outputs.equilibrium_moisture.toFixed(2)}% db</span>
+                        </div>
+                    </div>
+
+                    <div class="result-section">
+                        <h4>Mass Flows</h4>
+                        <div class="result-row">
+                            <span class="label">Air Mass Flow:</span>
+                            <span class="value">${outputs.air_mass_flow.toFixed(2)} lb/hr</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="label">Grain Mass Flow:</span>
+                            <span class="value">${outputs.grain_mass_flow.toFixed(2)} lb/hr</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="label">Water Removed:</span>
+                            <span class="value">${outputs.water_removed.toFixed(2)} lb/hr</span>
+                        </div>
+                    </div>
+
+                    ${outputs.warnings && outputs.warnings.length > 0 ? `
+                    <div class="result-section warnings">
+                        <h4>⚠ Warnings</h4>
+                        ${outputs.warnings.map(w => `<div class="warning-item">${w}</div>`).join('')}
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+        }
+
+        // Initialize
+        const apiClient = new DryerSimulationClient('http://localhost:5000/api');
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Page loaded, initializing...');
+            
+            // Populate crop dropdown
+            try {
+                const result = await apiClient.getCropPresets();
+                const selectElement = document.getElementById('cropSelect');
+                
+                selectElement.innerHTML = '<option value="">Select crop...</option>';
+
+                for (const [cropName, cropData] of Object.entries(result.crops)) {
+                    const option = document.createElement('option');
+                    option.value = cropName;
+                    option.textContent = cropData.name;
+                    option.dataset.cropData = JSON.stringify(cropData);
+                    selectElement.appendChild(option);
+                }
+
+                console.log('Crops loaded successfully');
+            } catch (error) {
+                console.error('Failed to load crops:', error);
+                document.getElementById('cropSelect').innerHTML = 
+                    '<option value="">❌ Failed to load crops - Check backend</option>';
+            }
+
+            // Run simulation button
+            document.getElementById('runSimulationButton').addEventListener('click', async function() {
+                const cropSelect = document.getElementById('cropSelect');
+                const selectedOption = cropSelect.options[cropSelect.selectedIndex];
+                
+                if (!selectedOption || !selectedOption.dataset.cropData) {
+                    alert('Please select a crop first');
+                    return;
+                }
+                
+                const cropData = JSON.parse(selectedOption.dataset.cropData);
+
+                try {
+                    showLoading('Running simulation...');
+
+                    const inputs = {
+                        crop: cropData,
+                        initial_grain_temp: parseFloat(document.getElementById('initial_grain_temp').value),
+                        inlet_air_temp: parseFloat(document.getElementById('inlet_air_temp').value),
+                        inlet_air_rh: parseFloat(document.getElementById('inlet_air_rh').value),
+                        target_moisture: parseFloat(document.getElementById('target_moisture').value),
+                        airflow_cfm: parseFloat(document.getElementById('airflow_cfm').value),
+                        grain_flow_bph: parseFloat(document.getElementById('grain_flow_bph').value),
+                        width: parseFloat(document.getElementById('width').value),
+                        length: parseFloat(document.getElementById('length').value)
+                    };
+
+                    // Validate
+                    const validation = await apiClient.validateParameters(inputs);
+                    if (!validation.valid) {
+                        hideLoading();
+                        let message = '❌ Validation Failed\n\n';
+                        if (validation.errors.length > 0) {
+                            message += 'Errors:\n' + validation.errors.join('\n') + '\n\n';
+                        }
+                        if (validation.warnings.length > 0) {
+                            message += 'Warnings:\n' + validation.warnings.join('\n');
+                        }
+                        alert(message);
+                        return;
+                    }
+
+                    // Run simulation
+                    const result = await apiClient.runCrossflowSimulation(inputs);
+                    
+                    hideLoading();
+
+                    if (result.success) {
+                        displayResults(result.outputs);
+                        document.getElementById('simulationResults').scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'nearest' 
+                        });
+                    } else {
+                        throw new Error(result.error || 'Simulation failed');
+                    }
+
+                } catch (error) {
+                    hideLoading();
+                    alert('❌ Simulation Error\n\n' + error.message);
+                    console.error('Simulation error:', error);
+                }
+            });
+
+            // Quick estimate button
+            document.getElementById('estimateTimeButton').addEventListener('click', async function() {
+                const cropSelect = document.getElementById('cropSelect');
+                const selectedOption = cropSelect.options[cropSelect.selectedIndex];
+                
+                if (!selectedOption || !selectedOption.dataset.cropData) {
+                    alert('Please select a crop first');
+                    return;
+                }
+                
+                const cropData = JSON.parse(selectedOption.dataset.cropData);
+                const initialMC = cropData.initial_moisture;
+                const targetMC = parseFloat(document.getElementById('target_moisture').value);
+                const airTemp = parseFloat(document.getElementById('inlet_air_temp').value);
+                const airRH = parseFloat(document.getElementById('inlet_air_rh').value);
+
+                try {
+                    showLoading('Estimating drying time...');
+                    const result = await apiClient.estimateDryingTime({
+                        initial_moisture: initialMC,
+                        target_moisture: targetMC,
+                        inlet_air_temp: airTemp,
+                        inlet_air_rh: airRH
+                    });
+
+                    hideLoading();
+                    if (result.success) {
+                        alert(`⏱️ Estimated Drying Time\n\n` +
+                              `${result.estimated_drying_time_hours} hours\n\n` +
+                              `Moisture to remove: ${result.moisture_to_remove}%\n\n` +
+                              `${result.note}`);
+                    }
+                } catch (error) {
+                    hideLoading();
+                    alert('❌ Failed to estimate drying time\n\n' + error.message);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

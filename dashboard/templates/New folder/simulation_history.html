@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation History - Dryer Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 1.8rem;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0b7dda;
+        }
+        
+        .content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .filter-group label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+        }
+        
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .history-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .history-table th,
+        .history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .history-table tbody tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .btn-small {
+            padding: 5px 12px;
+            font-size: 0.85rem;
+            margin: 0 3px;
+        }
+        
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.2rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .history-table {
+                font-size: 0.85rem;
+            }
+            
+            .history-table th,
+            .history-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 Simulation History</h1>
+            <a href="/" class="btn btn-primary">← Back to Dashboard</a>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filterUser">User:</label>
+                    <select id="filterUser" onchange="applyFilters()">
+                        <option value="">All Users</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterCrop">Crop:</label>
+                    <select id="filterCrop" onchange="applyFilters()">
+                        <option value="">All Crops</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterModel">Model:</label>
+                    <select id="filterModel" onchange="applyFilters()">
+                        <option value="">All Models</option>
+                        <option value="fixed_bed">Fixed Bed</option>
+                        <option value="crossflow">Crossflow</option>
+                        <option value="counterflow">Counterflow</option>
+                        <option value="concurrent">Concurrent</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterDate">Date Range:</label>
+                    <input type="date" id="filterDate" onchange="applyFilters()">
+                </div>
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div id="loading" class="loading">Loading simulation history...</div>
+            
+            <!-- History Table -->
+            <div id="historyContainer" style="display: none;">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Project</th>
+                            <th>Crop</th>
+                            <th>Model</th>
+                            <th>Initial M%</th>
+                            <th>Target M%</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- Rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- No Data Message -->
+            <div id="noData" class="no-data" style="display: none;">
+                No simulation history found.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allHistory = [];
+        let filteredHistory = [];
+        
+        // Load history on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHistory();
+        });
+        
+        // Load simulation history
+        async function loadHistory() {
+            try {
+                const response = await fetch('/dryer/api/simulation-history');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allHistory = data.history;
+                    filteredHistory = allHistory;
+                    populateFilters();
+                    renderTable();
+                } else {
+                    showError('Failed to load history');
+                }
+            } catch (error) {
+                showError('Error loading history: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        // Populate filter dropdowns
+        function populateFilters() {
+            // Get unique users
+            const users = [...new Set(allHistory.map(h => h.user_name).filter(Boolean))];
+            const userSelect = document.getElementById('filterUser');
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user;
+                option.textContent = user;
+                userSelect.appendChild(option);
+            });
+            
+            // Get unique crops
+            const crops = [...new Set(allHistory.map(h => h.crop_name))];
+            const cropSelect = document.getElementById('filterCrop');
+            crops.forEach(crop => {
+                const option = document.createElement('option');
+                option.value = crop;
+                option.textContent = crop;
+                cropSelect.appendChild(option);
+            });
+        }
+        
+        // Apply filters
+        function applyFilters() {
+            const userFilter = document.getElementById('filterUser').value;
+            const cropFilter = document.getElementById('filterCrop').value;
+            const modelFilter = document.getElementById('filterModel').value;
+            const dateFilter = document.getElementById('filterDate').value;
+            
+            filteredHistory = allHistory.filter(item => {
+                let matches = true;
+                
+                if (userFilter && item.user_name !== userFilter) matches = false;
+                if (cropFilter && item.crop_name !== cropFilter) matches = false;
+                if (modelFilter && item.model_type !== modelFilter) matches = false;
+                if (dateFilter) {
+                    const itemDate = new Date(item.run_date).toISOString().split('T')[0];
+                    if (itemDate !== dateFilter) matches = false;
+                }
+                
+                return matches;
+            });
+            
+            renderTable();
+        }
+        
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('historyTableBody');
+            const container = document.getElementById('historyContainer');
+            const noData = document.getElementById('noData');
+            
+            tbody.innerHTML = '';
+            
+            if (filteredHistory.length === 0) {
+                container.style.display = 'none';
+                noData.style.display = 'block';
+                return;
+            }
+            
+            container.style.display = 'block';
+            noData.style.display = 'none';
+            
+            filteredHistory.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const date = new Date(item.run_date);
+                const dateStr = date.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                row.innerHTML = `
+                    <td>${item.simulation_id}</td>
+                    <td>${dateStr}</td>
+                    <td>${item.user_name || 'N/A'}</td>
+                    <td>${item.project_name || 'N/A'}</td>
+                    <td>${item.crop_name}</td>
+                    <td>${item.model_type.replace('_', ' ').toUpperCase()}</td>
+                    <td>${item.initial_moisture.toFixed(1)}%</td>
+                    <td>${item.target_moisture.toFixed(1)}%</td>
+                    <td>
+                        <button class="btn btn-small btn-info" onclick="viewDetails(${item.simulation_id})">
+                            📄 View
+                        </button>
+                        <button class="btn btn-small btn-success" onclick="downloadPDF(${item.simulation_id})">
+                            📥 PDF
+                        </button>
+                        <button class="btn btn-small btn-warning" onclick="rerun(${item.simulation_id})">
+                            🔄 Re-run
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        // View simulation details
+        function viewDetails(simId) {
+            window.location.href = `/dryer/simulation/${simId}`;
+        }
+        
+        // Download PDF report
+        async function downloadPDF(simId) {
+            window.location.href = `/dryer/api/simulation/${simId}/pdf`;
+        }
+        
+        // Re-run simulation with same parameters
+        async function rerun(simId) {
+            if (confirm('Re-run this simulation with the same parameters?')) {
+                try {
+                    const response = await fetch(`/dryer/api/simulation/${simId}/rerun`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Simulation queued for re-run!');
+                        loadHistory(); // Reload
+                    } else {
+                        alert('Failed to re-run: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        function showError(message) {
+            document.getElementById('loading').textContent = '❌ ' + message;
+        }
+    </script>
+</body>
+</html>

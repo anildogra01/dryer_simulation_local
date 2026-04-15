@@ -1,0 +1,248 @@
+from flask import Flask, render_template, jsonify, request
+from flask_cors import CORS
+from datetime import datetime
+import math
+import json
+from database import db, init_db, Crop, Simulation, IterationData
+
+app = Flask(__name__)
+CORS(app)
+
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///grain_dryer.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'grain-dryer-simulation-key'
+
+# Initialize database
+init_db(app)
+
+
+@app.route('/')
+def index():
+    """Serve the main dashboard"""
+    return render_template('dashboard.html')
+
+
+@app.route('/api/crops', methods=['GET'])
+def get_crops():
+    """Get all available crops"""
+    crops = Crop.query.all()
+    return jsonify([crop.to_dict() for crop in crops])
+
+
+@app.route('/api/crops', methods=['POST'])
+def create_crop():
+    """Create a new crop"""
+    data = request.json
+    crop = Crop(
+        name=data.get('name'),
+        description=data.get('description', ''),
+        initial_moisture=data.get('initial_moisture'),
+        target_moisture=data.get('target_moisture')
+    )
+    db.session.add(crop)
+    db.session.commit()
+    return jsonify({'success': True, 'crop': crop.to_dict()})
+
+
+@app.route('/api/simulate', methods=['POST'])
+def run_simulation():
+    """
+    Run grain dryer simulation
+    This is a simplified simulation - you can replace with your actual model
+    """
+    data = request.json
+    
+    # Extract parameters
+    crop_id = data.get('crop_id')
+    initial_moisture = float(data.get('initial_moisture', 25.0))
+    target_moisture = float(data.get('target_moisture', 15.0))
+    grain_temp = float(data.get('grain_temp', 70.0))
+    air_temp = float(data.get('air_temp', 110.0))
+    air_rh = float(data.get('air_rh', 30.0))
+    air_flow_rate = float(data.get('air_flow_rate', 500.0))
+    grain_flow_rate = data.get('grain_flow_rate')
+    width = data.get('width')
+    length = float(data.get('length', 5.0))
+    
+    # Create simulation record
+    simulation = Simulation(
+        crop_id=crop_id,
+        initial_moisture=initial_moisture,
+        target_moisture=target_moisture,
+        grain_temp=grain_temp,
+        air_temp=air_temp,
+        air_rh=air_rh,
+        air_flow_rate=air_flow_rate,
+        grain_flow_rate=grain_flow_rate,
+        width=width,
+        length=length,
+        status='running'
+    )
+    db.session.add(simulation)
+    db.session.commit()
+    
+    # Run simplified simulation
+    try:
+        results = simulate_drying(
+            simulation.id,
+            initial_moisture,
+            target_moisture,
+            grain_temp,
+            air_temp,
+            air_rh,
+            air_flow_rate
+        )
+        
+        # Update simulation with results
+        simulation.status = 'complete'
+        simulation.total_time = results['total_time']
+        simulation.total_energy = results['total_energy']
+        simulation.total_water_removed = results['total_water_removed']
+        simulation.final_moisture = results['final_moisture']
+        simulation.completed_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'simulation_id': simulation.id,
+            'results': results
+        })
+        
+    except Exception as e:
+        simulation.status = 'error'
+        db.session.commit()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def simulate_drying(simulation_id, initial_moisture, target_moisture, grain_temp, air_temp, air_rh, air_flow):
+    """
+    Simplified grain drying simulation
+    This uses a basic exponential drying model
+    
+    In production, replace this with your actual drying model (e.g., thin-layer, deep-bed, etc.)
+    """
+    
+    # Simulation parameters
+    time_step = 0.1  # hours
+    max_iterations = 500
+    
+    # Initialize variables
+    current_moisture = initial_moisture
+    total_time = 0.0
+    total_energy = 0.0
+    total_water_removed = 0.0
+    iteration = 0
+    
+    # Drying rate constant (simplified - depends on air temp, RH, grain type, etc.)
+    # Higher temp = faster drying, Higher RH = slower drying
+    temp_factor = (air_temp - 60) / 50.0  # Normalized temperature effect
+    rh_factor = 1.0 - (air_rh / 100.0)    # RH effect (higher RH = slower)
+    k = 0.15 * temp_factor * rh_factor    # Drying rate constant
+    
+    iterations_data = []
+    
+    while current_moisture > target_moisture and iteration < max_iterations:
+        # Calculate moisture removal for this time step (exponential decay model)
+        # dM/dt = -k * (M - Me)
+        # where Me is equilibrium moisture content (simplified to 5% here)
+        equilibrium_moisture = 5.0 + (air_rh * 0.08)  # Simplified EMC
+        
+        moisture_change = k * (current_moisture - equilibrium_moisture) * time_step
+        current_moisture -= moisture_change
+        
+        # Calculate water removed (assuming 1000 lb grain mass for simplicity)
+        grain_mass_lb = 1000.0
+        water_removed_step = (moisture_change / 100.0) * grain_mass_lb
+        total_water_removed += water_removed_step
+        
+        # Calculate energy used (simplified)
+        # Energy to heat air + energy to evaporate water
+        # ~1000 BTU per lb of water removed (latent heat)
+        energy_step = water_removed_step * 1000.0
+        total_energy += energy_step
+        
+        # Increment time
+        total_time += time_step
+        iteration += 1
+        
+        # Store iteration data every 0.5 hours
+        if iteration % 5 == 0 or current_moisture <= target_moisture:
+            iter_data = IterationData(
+                simulation_id=simulation_id,
+                iteration=iteration,
+                time=total_time,
+                moisture=current_moisture,
+                energy=total_energy,
+                water_removed=total_water_removed,
+                grain_temp=grain_temp + (air_temp - grain_temp) * 0.3,  # Simplified grain temp
+                air_temp=air_temp
+            )
+            db.session.add(iter_data)
+            iterations_data.append(iter_data.to_dict())
+    
+    db.session.commit()
+    
+    return {
+        'total_time': round(total_time, 2),
+        'total_energy': round(total_energy, 0),
+        'total_water_removed': round(total_water_removed, 2),
+        'final_moisture': round(current_moisture, 2),
+        'iterations': iteration,
+        'iterations_data': iterations_data
+    }
+
+
+@app.route('/api/simulation/<int:sim_id>', methods=['GET'])
+def get_simulation(sim_id):
+    """Get simulation details and all iteration data"""
+    simulation = Simulation.query.get_or_404(sim_id)
+    iterations = IterationData.query.filter_by(simulation_id=sim_id).order_by(IterationData.iteration).all()
+    
+    return jsonify({
+        'simulation': simulation.to_dict(),
+        'iterations': [iter.to_dict() for iter in iterations]
+    })
+
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    """Get all past simulations"""
+    simulations = Simulation.query.order_by(Simulation.created_at.desc()).limit(50).all()
+    return jsonify([sim.to_dict() for sim in simulations])
+
+
+@app.route('/api/simulation/<int:sim_id>/stop', methods=['POST'])
+def stop_simulation(sim_id):
+    """Stop a running simulation"""
+    simulation = Simulation.query.get_or_404(sim_id)
+    simulation.status = 'stopped'
+    simulation.completed_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Simulation stopped'})
+
+
+@app.route('/crop_master')
+def crop_master():
+    """Crop management page (placeholder)"""
+    return "<h1>Crop Master - Coming Soon</h1><p><a href='/'>Back to Dashboard</a></p>"
+
+
+@app.route('/history')
+def history():
+    """Simulation history page (placeholder)"""
+    return "<h1>Simulation History - Coming Soon</h1><p><a href='/'>Back to Dashboard</a></p>"
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Not found'}), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'error': 'Internal server error'}), 500
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)

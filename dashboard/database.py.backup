@@ -1,0 +1,160 @@
+"""
+Database configuration and models for Grain Dryer Simulation
+SQLite database for local development
+"""
+
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+import json
+
+db = SQLAlchemy()
+
+
+class Crop(db.Model):
+    """Store crop/grain types and their properties"""
+    __tablename__ = 'crops'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.String(200))
+    initial_moisture = db.Column(db.Float)  # Default initial moisture %
+    target_moisture = db.Column(db.Float)   # Target moisture %
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'initial_moisture': self.initial_moisture,
+            'target_moisture': self.target_moisture,
+            'created_at': self.created_at.isoformat()
+        }
+    
+    def __repr__(self):
+        return f'<Crop {self.name}>'
+
+
+class Simulation(db.Model):
+    """Store simulation runs"""
+    __tablename__ = 'simulations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    crop_id = db.Column(db.Integer, db.ForeignKey('crops.id'))
+    
+    # Input parameters
+    initial_moisture = db.Column(db.Float, nullable=False)
+    target_moisture = db.Column(db.Float, nullable=False)
+    grain_temp = db.Column(db.Float)
+    air_temp = db.Column(db.Float)
+    air_rh = db.Column(db.Float)
+    air_flow_rate = db.Column(db.Float)
+    grain_flow_rate = db.Column(db.Float)
+    width = db.Column(db.Float)
+    length = db.Column(db.Float)
+    
+    # Simulation results
+    status = db.Column(db.String(20), default='pending')  # pending, running, complete, stopped, error
+    total_time = db.Column(db.Float)  # hours
+    total_energy = db.Column(db.Float)  # BTU
+    total_water_removed = db.Column(db.Float)  # lb
+    final_moisture = db.Column(db.Float)
+    
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    
+    # Relationship
+    crop = db.relationship('Crop', backref='simulations')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'crop_id': self.crop_id,
+            'crop_name': self.crop.name if self.crop else None,
+            'initial_moisture': self.initial_moisture,
+            'target_moisture': self.target_moisture,
+            'grain_temp': self.grain_temp,
+            'air_temp': self.air_temp,
+            'air_rh': self.air_rh,
+            'air_flow_rate': self.air_flow_rate,
+            'grain_flow_rate': self.grain_flow_rate,
+            'width': self.width,
+            'length': self.length,
+            'status': self.status,
+            'total_time': self.total_time,
+            'total_energy': self.total_energy,
+            'total_water_removed': self.total_water_removed,
+            'final_moisture': self.final_moisture,
+            'created_at': self.created_at.isoformat(),
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None
+        }
+    
+    def __repr__(self):
+        return f'<Simulation {self.id} - {self.status}>'
+
+
+class IterationData(db.Model):
+    """Store iteration-by-iteration simulation data"""
+    __tablename__ = 'iteration_data'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    simulation_id = db.Column(db.Integer, db.ForeignKey('simulations.id'), nullable=False)
+    iteration = db.Column(db.Integer, nullable=False)
+    time = db.Column(db.Float, nullable=False)  # hours
+    moisture = db.Column(db.Float, nullable=False)  # %
+    energy = db.Column(db.Float, nullable=False)  # BTU
+    water_removed = db.Column(db.Float, nullable=False)  # lb
+    grain_temp = db.Column(db.Float)  # °F
+    air_temp = db.Column(db.Float)  # °F
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    simulation = db.relationship('Simulation', backref='iterations')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'simulation_id': self.simulation_id,
+            'iteration': self.iteration,
+            'time': self.time,
+            'moisture': self.moisture,
+            'energy': self.energy,
+            'water_removed': self.water_removed,
+            'grain_temp': self.grain_temp,
+            'air_temp': self.air_temp,
+            'created_at': self.created_at.isoformat()
+        }
+    
+    def __repr__(self):
+        return f'<IterationData Sim:{self.simulation_id} Iter:{self.iteration}>'
+
+
+def init_db(app):
+    """Initialize database with app context"""
+    db.init_app(app)
+    
+    with app.app_context():
+        # Create all tables
+        db.create_all()
+        
+        # Check if we need to seed initial data
+        if Crop.query.count() == 0:
+            seed_initial_data()
+
+
+def seed_initial_data():
+    """Seed database with initial crop data"""
+    
+    # Add common grain crops
+    crops = [
+        Crop(name='Corn', description='Yellow Dent Corn', initial_moisture=25.0, target_moisture=15.0),
+        Crop(name='Wheat', description='Hard Red Winter Wheat', initial_moisture=20.0, target_moisture=13.5),
+        Crop(name='Soybeans', description='Yellow Soybeans', initial_moisture=18.0, target_moisture=13.0),
+        Crop(name='Rice', description='Long Grain Rice', initial_moisture=22.0, target_moisture=12.0),
+        Crop(name='Barley', description='Two-Row Barley', initial_moisture=20.0, target_moisture=12.0),
+    ]
+    db.session.add_all(crops)
+    db.session.commit()
+    
+    print("✅ Database seeded with initial crop data")

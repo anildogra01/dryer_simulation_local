@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Master Management - Dryer Simulation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 1.8rem;
+        }
+        
+        .header .icon {
+            font-size: 2.5rem;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e68900;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #f5af19;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #f5af19;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .form-group small {
+            color: #666;
+            font-size: 0.85rem;
+            display: block;
+            margin-top: 3px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .crop-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .crop-item {
+            background: #f9f9f9;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .crop-item:hover {
+            background: #fff3e0;
+            border-color: #f5af19;
+            transform: translateX(5px);
+        }
+        
+        .crop-item.selected {
+            background: #fff3e0;
+            border-color: #f5af19;
+            border-width: 3px;
+        }
+        
+        .crop-item h3 {
+            color: #333;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .crop-item .crop-type {
+            background: #2196F3;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .crop-item .crop-details {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        
+        .crop-item .crop-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .crop-item .btn {
+            padding: 5px 12px;
+            font-size: 0.8rem;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <span class="icon">🌾</span>
+                <h1 style="display: inline; margin-left: 10px;">Crop Master Management</h1>
+            </div>
+            <button class="btn btn-secondary" onclick="window.location.href='/'">
+                ← Back to Dashboard
+            </button>
+        </div>
+        
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" id="totalCrops">0</div>
+                <div class="label">Total Crops</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);">
+                <div class="number" id="grainCrops">0</div>
+                <div class="label">Grain Crops</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <div class="number" id="oilseedCrops">0</div>
+                <div class="label">Oilseed Crops</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
+                <div class="number" id="otherCrops">0</div>
+                <div class="label">Other Crops</div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="content">
+            <!-- Crop List Panel -->
+            <div class="panel">
+                <h2>📋 Crop List</h2>
+                <div class="alert alert-success" id="successAlert"></div>
+                <div class="alert alert-error" id="errorAlert"></div>
+                <div class="crop-list" id="cropList">
+                    <!-- Crops will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Crop Form Panel -->
+            <div class="panel">
+                <h2 id="formTitle">➕ Add New Crop</h2>
+                
+                <form id="cropForm">
+                    <input type="hidden" id="cropId" name="crop_id">
+                    
+                    <div class="form-group">
+                        <label for="cropName">Crop Name *</label>
+                        <input type="text" id="cropName" name="crop_name" required>
+                        <small>e.g., Corn, Wheat, Rice</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cropType">Crop Type *</label>
+                        <select id="cropType" name="crop_type" required>
+                            <option value="">Select type...</option>
+                            <option value="Grain">Grain</option>
+                            <option value="Oilseed">Oilseed</option>
+                            <option value="Pulse">Pulse</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <h3 style="margin: 20px 0 15px; color: #666; font-size: 1.1rem;">Physical Properties</h3>
+                    
+                    <div class="form-group">
+                        <label for="specificSurfaceArea">Specific Surface Area (m²/m³) *</label>
+                        <input type="number" id="specificSurfaceArea" name="specific_surface_area" step="0.1" required>
+                        <small>Surface area per unit volume</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dryBulkDensity">Dry Bulk Density (kg/m³) *</label>
+                        <input type="number" id="dryBulkDensity" name="dry_bulk_density" step="0.1" required>
+                        <small>Mass per unit volume when dry</small>
+                    </div>
+                    
+                    <h3 style="margin: 20px 0 15px; color: #666; font-size: 1.1rem;">Thermal Properties</h3>
+                    
+                    <div class="form-group">
+                        <label for="heatCapacityAir">Heat Capacity of Air (J/kg·K) *</label>
+                        <input type="number" id="heatCapacityAir" name="heat_capacity_air" step="0.1" required>
+                        <small>Typically 1005.0 for air</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="heatCapacityProduct">Heat Capacity of Dry Product (J/kg·K) *</label>
+                        <input type="number" id="heatCapacityProduct" name="heat_capacity_dry_product" step="0.1" required>
+                        <small>Specific to crop material</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="heatCapacityVapor">Heat Capacity of Water Vapor (J/kg·K) *</label>
+                        <input type="number" id="heatCapacityVapor" name="heat_capacity_water_vapor" step="0.1" required>
+                        <small>Typically 1884.0 for water vapor</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="latentHeatWater">Latent Heat of Water in Grain (J/kg) *</label>
+                        <input type="number" id="latentHeatWater" name="latent_heat_water" step="1000" required>
+                        <small>Typically 2500000.0 (2.5e6)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="atmosphericPressure">Atmospheric Pressure (Pa) *</label>
+                        <input type="number" id="atmosphericPressure" name="atmospheric_pressure" step="100" required>
+                        <small>Typically 101325.0 at sea level</small>
+                    </div>
+                    
+                    <h3 style="margin: 20px 0 15px; color: #666; font-size: 1.1rem;">Temperature Limits</h3>
+                    
+                    <div class="form-group">
+                        <label for="maxSafeTemp">Maximum Safe Temperature (°C)</label>
+                        <input type="number" id="maxSafeTemp" name="max_safe_temp" step="0.1">
+                        <small>Maximum drying temperature to avoid damage</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="minSafeTemp">Minimum Safe Temperature (°C)</label>
+                        <input type="number" id="minSafeTemp" name="min_safe_temp" step="0.1">
+                        <small>Minimum effective drying temperature</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="optimalTemp">Optimal Drying Temperature (°C)</label>
+                        <input type="number" id="optimalTemp" name="optimal_drying_temp" step="0.1">
+                        <small>Recommended drying temperature</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" name="notes" rows="3"></textarea>
+                        <small>Additional information about this crop</small>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="saveBtn">💾 Save Crop</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">🔄 Clear Form</button>
+                        <button type="button" class="btn btn-warning" id="cancelEditBtn" style="display: none;" onclick="cancelEdit()">✖ Cancel Edit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let crops = [];
+        let editingCropId = null;
+        
+        // Load crops on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCrops();
+        });
+        
+        // Load all crops from API
+        async function loadCrops() {
+            try {
+                const response = await fetch('/api/crops');
+                const data = await response.json();
+                crops = data.crops || [];
+                renderCropList();
+                updateStats();
+            } catch (error) {
+                showError('Failed to load crops: ' + error.message);
+            }
+        }
+        
+        // Render crop list
+        function renderCropList() {
+            const listEl = document.getElementById('cropList');
+            
+            if (crops.length === 0) {
+                listEl.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No crops yet. Add your first crop!</p>';
+                return;
+            }
+            
+            listEl.innerHTML = crops.map(crop => `
+                <div class="crop-item" onclick="selectCrop(${crop.crop_id})">
+                    <h3>
+                        ${crop.crop_name}
+                        <span class="crop-type">${crop.crop_type}</span>
+                    </h3>
+                    <div class="crop-details">
+                        SA: ${crop.specific_surface_area} m²/m³ | 
+                        Density: ${crop.dry_bulk_density} kg/m³ | 
+                        Max Temp: ${crop.max_safe_temp || 'N/A'}°C
+                    </div>
+                    <div class="crop-actions">
+                        <button class="btn btn-warning" onclick="editCrop(${crop.crop_id}); event.stopPropagation();">✏️ Edit</button>
+                        <button class="btn btn-danger" onclick="deleteCrop(${crop.crop_id}, '${crop.crop_name}'); event.stopPropagation();">🗑️ Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Update statistics
+        function updateStats() {
+            const total = crops.length;
+            const grain = crops.filter(c => c.crop_type === 'Grain').length;
+            const oilseed = crops.filter(c => c.crop_type === 'Oilseed').length;
+            const other = total - grain - oilseed;
+            
+            document.getElementById('totalCrops').textContent = total;
+            document.getElementById('grainCrops').textContent = grain;
+            document.getElementById('oilseedCrops').textContent = oilseed;
+            document.getElementById('otherCrops').textContent = other;
+        }
+        
+        // Select crop (highlight)
+        function selectCrop(cropId) {
+            document.querySelectorAll('.crop-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+        
+        // Edit crop
+        async function editCrop(cropId) {
+            try {
+                const crop = crops.find(c => c.crop_id === cropId);
+                if (!crop) {
+                    // Fetch full details from API
+                    const response = await fetch(`/api/crops/${cropId}`);
+                    const data = await response.json();
+                    fillForm(data);
+                } else {
+                    // Need full details, fetch from API
+                    const response = await fetch(`/api/crops/${crop.crop_name}`);
+                    const data = await response.json();
+                    fillForm(data);
+                }
+                
+                editingCropId = cropId;
+                document.getElementById('formTitle').textContent = '✏️ Edit Crop';
+                document.getElementById('saveBtn').textContent = '💾 Update Crop';
+                document.getElementById('cancelEditBtn').style.display = 'inline-block';
+                
+                // Scroll to form
+                document.querySelector('.panel:last-child').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                showError('Failed to load crop details: ' + error.message);
+            }
+        }
+        
+        // Fill form with crop data
+        function fillForm(crop) {
+            document.getElementById('cropId').value = crop.crop_id || '';
+            document.getElementById('cropName').value = crop.crop_name || '';
+            document.getElementById('cropType').value = crop.crop_type || '';
+            document.getElementById('specificSurfaceArea').value = crop.specific_surface_area || '';
+            document.getElementById('heatCapacityAir').value = crop.heat_capacity_air || '';
+            document.getElementById('heatCapacityProduct').value = crop.heat_capacity_dry_product || '';
+            document.getElementById('heatCapacityVapor').value = crop.heat_capacity_water_vapor || '';
+            document.getElementById('dryBulkDensity').value = crop.dry_bulk_density || '';
+            document.getElementById('latentHeatWater').value = crop.latent_heat_water || '';
+            document.getElementById('atmosphericPressure').value = crop.atmospheric_pressure || '';
+            document.getElementById('maxSafeTemp').value = crop.max_safe_temp || '';
+            document.getElementById('minSafeTemp').value = crop.min_safe_temp || '';
+            document.getElementById('optimalTemp').value = crop.optimal_drying_temp || '';
+            document.getElementById('notes').value = crop.notes || '';
+        }
+        
+        // Delete crop
+        async function deleteCrop(cropId, cropName) {
+            if (!confirm(`Are you sure you want to delete "${cropName}"?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/crops/${cropId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showSuccess(`Crop "${cropName}" deleted successfully`);
+                    loadCrops();
+                    if (editingCropId === cropId) {
+                        resetForm();
+                    }
+                } else {
+                    const error = await response.json();
+                    showError('Delete failed: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showError('Failed to delete crop: ' + error.message);
+            }
+        }
+        
+        // Form submission
+        document.getElementById('cropForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const cropData = {};
+            
+            for (let [key, value] of formData.entries()) {
+                if (key === 'crop_id' && !value) continue;
+                cropData[key] = value;
+            }
+            
+            try {
+                const url = editingCropId ? `/api/crops/${editingCropId}` : '/api/crops';
+                const method = editingCropId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cropData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showSuccess(editingCropId ? 'Crop updated successfully!' : 'Crop added successfully!');
+                    resetForm();
+                    loadCrops();
+                } else {
+                    const error = await response.json();
+                    showError('Save failed: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showError('Failed to save crop: ' + error.message);
+            }
+        });
+        
+        // Reset form
+        function resetForm() {
+            document.getElementById('cropForm').reset();
+            document.getElementById('cropId').value = '';
+            editingCropId = null;
+            document.getElementById('formTitle').textContent = '➕ Add New Crop';
+            document.getElementById('saveBtn').textContent = '💾 Save Crop';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+        
+        // Cancel edit
+        function cancelEdit() {
+            resetForm();
+        }
+        
+        // Show success message
+        function showSuccess(message) {
+            const alert = document.getElementById('successAlert');
+            alert.textContent = '✅ ' + message;
+            alert.classList.add('show');
+            setTimeout(() => alert.classList.remove('show'), 5000);
+        }
+        
+        // Show error message
+        function showError(message) {
+            const alert = document.getElementById('errorAlert');
+            alert.textContent = '❌ ' + message;
+            alert.classList.add('show');
+            setTimeout(() => alert.classList.remove('show'), 5000);
+        }
+    </script>
+</body>
+</html>

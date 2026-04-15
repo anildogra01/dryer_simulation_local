@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Analytics & Monitoring</title>
+    <style>
+        {% include 'components/styles.css' %}
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% include 'components/header.html' %}
+        
+        {% include 'components/metrics.html' %}
+
+        <div class="content-grid">
+            {% include 'components/chart.html' %}
+            
+            {% include 'components/activity_feed.html' %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        {% include 'components/scripts.js' %}
+    </script>
+</body>
+</html>

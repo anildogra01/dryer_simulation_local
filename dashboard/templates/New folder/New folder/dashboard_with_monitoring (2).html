@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grain Dryer Simulation Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+        }
+        
+        .header-date {
+            text-align: right;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .nav-bar {
+            background: #f5f5f5;
+            padding: 10px 30px;
+            display: flex;
+            gap: 15px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .nav-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .nav-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .selection-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 20px;
+            margin-bottom: 30px;
+            align-items: end;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .section {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .crop-params-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .form-group input[readonly] {
+            background: #e9ecef;
+            cursor: not-allowed;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e68900;
+        }
+        
+        .results-section {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .results-section.show {
+            display: block;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 768px) {
+            .selection-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .params-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .crop-params-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>🌾 GRAIN DRYER SIMULATION</h1>
+            </div>
+            <div class="header-date">
+                <div id="currentDate"></div>
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <div class="nav-bar">
+            <a href="/dryer/" class="nav-btn active">🏠 Dashboard</a>
+            <a href="/dryer/crop-master" class="nav-btn">🌾 Manage Crops</a>
+            <a href="/dryer/history" class="nav-btn">📊 Simulation History</a>
+            <a href="/" class="nav-btn">← Back to Greenhouse</a>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Alerts -->
+            <div class="alert alert-success" id="successAlert"></div>
+            <div class="alert alert-error" id="errorAlert"></div>
+            
+            <!-- Selection Row -->
+            <div class="selection-row">
+                <div class="form-group">
+                    <label for="cropSelect">Select Grain Type:</label>
+                    <select id="cropSelect" onchange="loadCropParameters()">
+                        <option value="">-- Select Crop --</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modelSelect">Select Model:</label>
+                    <select id="modelSelect">
+                        <option value="fixed_bed">Fixed Bed Dryer</option>
+                        <option value="crossflow">Crossflow Dryer</option>
+                        <option value="counterflow">Counterflow Dryer</option>
+                        <option value="concurrent">Concurrent Flow Dryer</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- User Credentials -->
+            <div class="section">
+                <h2>👤 User Credentials</h2>
+                <div class="params-grid">
+                    <div class="form-group">
+                        <label for="userName">Name:</label>
+                        <input type="text" id="userName" placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label for="projectName">Project Name:</label>
+                        <input type="text" id="projectName" placeholder="Project name">
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Address:</label>
+                        <input type="text" id="address" placeholder="Location">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Process Parameters -->
+            <div class="section">
+                <h2>⚙️ Enter Parameters</h2>
+                <div class="params-grid">
+                    <div class="form-group">
+                        <label for="initialMoisture">Initial Grain Moisture Content (%):</label>
+                        <input type="number" id="initialMoisture" step="0.1" placeholder="e.g., 25.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="targetMoisture">Target Moisture Content (%):</label>
+                        <input type="number" id="targetMoisture" step="0.1" placeholder="e.g., 14.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="grainTemp">Grain Temperature (°F):</label>
+                        <input type="number" id="grainTemp" step="0.1" placeholder="e.g., 70.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="airTemp">Air Temperature (°F):</label>
+                        <input type="number" id="airTemp" step="0.1" placeholder="e.g., 110.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="airRH">Air Relative Humidity (%):</label>
+                        <input type="number" id="airRH" step="0.1" placeholder="e.g., 30.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="airFlowRate">Air Flow Rate (CFM):</label>
+                        <input type="number" id="airFlowRate" step="1" placeholder="e.g., 500">
+                    </div>
+                    <div class="form-group">
+                        <label for="grainFlowRate">Grain Flow Rate (kg/hr):</label>
+                        <input type="number" id="grainFlowRate" step="1" placeholder="e.g., 1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="width">Width (m):</label>
+                        <input type="number" id="width" step="0.1" placeholder="e.g., 3.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="length">Length (m):</label>
+                        <input type="number" id="length" step="0.1" placeholder="e.g., 5.0">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Crop-Specific Parameters (Auto-filled) -->
+            <div class="section">
+                <h2>🌾 Crop-Related Parameters (Auto-filled from Database)</h2>
+                <div class="crop-params-grid">
+                    <div class="form-group">
+                        <label for="surfaceArea">Specific Surface Area (m²/m³):</label>
+                        <input type="number" id="surfaceArea" step="0.1" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="heatCapacityAir">Heat Capacity of Air (J/kg·K):</label>
+                        <input type="number" id="heatCapacityAir" step="0.1" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="heatCapacityProduct">Heat Capacity of Dry Product (J/kg·K):</label>
+                        <input type="number" id="heatCapacityProduct" step="0.1" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="heatCapacityVapor">Heat Capacity of Water Vapor (J/kg·K):</label>
+                        <input type="number" id="heatCapacityVapor" step="0.1" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="bulkDensity">Dry Bulk Density of Grain (kg/m³):</label>
+                        <input type="number" id="bulkDensity" step="0.1" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="latentHeat">Latent Heat of Water in Grain (J/kg):</label>
+                        <input type="number" id="latentHeat" step="1000" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="atmPressure">Atmospheric Pressure (Pa):</label>
+                        <input type="number" id="atmPressure" step="100" readonly>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="buttons">
+                <button class="btn btn-primary" onclick="runSimulation()">▶️ CALCULATE</button>
+                <button class="btn btn-danger" onclick="stopSimulation()">⏹️ STOP</button>
+                <button class="btn btn-secondary" onclick="changeParameters()">🔧 Change Parameters</button>
+                <button class="btn btn-warning" onclick="restartSimulation()">🔄 Restart</button>
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                Running simulation
+            </div>
+            
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection">
+                <div class="section">
+                    <h2>📊 Simulation Results</h2>
+                    <div id="resultsContent">
+                        <!-- Results will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let crops = [];
+        let currentSimulation = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            displayCurrentDate();
+            loadCrops();
+        });
+        
+        // Display current date
+        function displayCurrentDate() {
+            const dateEl = document.getElementById('currentDate');
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateEl.textContent = now.toLocaleDateString('en-US', options);
+        }
+        
+        // Load crops from database
+        async function loadCrops() {
+            try {
+                const response = await fetch('/api/crops');
+                const data = await response.json();
+                
+                if (data.success) {
+                    crops = data.crops;
+                    populateCropDropdown();
+                } else {
+                    showError('Failed to load crops');
+                }
+            } catch (error) {
+                showError('Error loading crops: ' + error.message);
+            }
+        }
+        
+        // Populate crop dropdown
+        function populateCropDropdown() {
+            const select = document.getElementById('cropSelect');
+            select.innerHTML = '<option value="">-- Select Crop --</option>';
+            
+            crops.forEach(crop => {
+                const option = document.createElement('option');
+                option.value = crop.crop_name;
+                option.textContent = `${crop.crop_name} (${crop.crop_type})`;
+                select.appendChild(option);
+            });
+        }
+        
+        // Load crop parameters when crop is selected
+        async function loadCropParameters() {
+            const cropName = document.getElementById('cropSelect').value;
+            
+            if (!cropName) {
+                clearCropParameters();
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/crops/${cropName}`);
+                const crop = await response.json();
+                
+                // Fill crop parameters
+                document.getElementById('surfaceArea').value = crop.specific_surface_area;
+                document.getElementById('heatCapacityAir').value = crop.heat_capacity_air;
+                document.getElementById('heatCapacityProduct').value = crop.heat_capacity_dry_product;
+                document.getElementById('heatCapacityVapor').value = crop.heat_capacity_water_vapor;
+                document.getElementById('bulkDensity').value = crop.dry_bulk_density;
+                document.getElementById('latentHeat').value = crop.latent_heat_water;
+                document.getElementById('atmPressure').value = crop.atmospheric_pressure;
+                
+                showSuccess(`Loaded parameters for ${cropName}`);
+            } catch (error) {
+                showError('Error loading crop parameters: ' + error.message);
+            }
+        }
+        
+        // Clear crop parameters
+        function clearCropParameters() {
+            document.getElementById('surfaceArea').value = '';
+            document.getElementById('heatCapacityAir').value = '';
+            document.getElementById('heatCapacityProduct').value = '';
+            document.getElementById('heatCapacityVapor').value = '';
+            document.getElementById('bulkDensity').value = '';
+            document.getElementById('latentHeat').value = '';
+            document.getElementById('atmPressure').value = '';
+        }
+        
+        // Run simulation
+        async function runSimulation() {
+            // Validate inputs
+            const cropName = document.getElementById('cropSelect').value;
+            if (!cropName) {
+                showError('Please select a crop type');
+                return;
+            }
+            
+            const initialMoisture = document.getElementById('initialMoisture').value;
+            const targetMoisture = document.getElementById('targetMoisture').value;
+            
+            if (!initialMoisture || !targetMoisture) {
+                showError('Please enter initial and target moisture content');
+                return;
+            }
+            
+            // Collect all data
+            const simulationData = {
+                crop_name: cropName,
+                model_type: document.getElementById('modelSelect').value,
+                user_name: document.getElementById('userName').value,
+                project_name: document.getElementById('projectName').value,
+                address: document.getElementById('address').value,
+                initial_moisture: parseFloat(initialMoisture),
+                target_moisture: parseFloat(targetMoisture),
+                grain_temp: parseFloat(document.getElementById('grainTemp').value),
+                air_temp: parseFloat(document.getElementById('airTemp').value),
+                air_rh: parseFloat(document.getElementById('airRH').value),
+                air_flow_rate: parseFloat(document.getElementById('airFlowRate').value),
+                grain_flow_rate: parseFloat(document.getElementById('grainFlowRate').value),
+                width: parseFloat(document.getElementById('width').value),
+                length: parseFloat(document.getElementById('length').value)
+            };
+            
+            // Show loading
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('resultsSection').classList.remove('show');
+            
+            try {
+                const response = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(simulationData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Simulation completed successfully!');
+                    displayResults(result);
+                } else {
+                    showError('Simulation failed: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showError('Error running simulation: ' + error.message);
+            } finally {
+                document.getElementById('loadingIndicator').style.display = 'none';
+            }
+        }
+        
+        // Display results
+        function displayResults(result) {
+            const resultsContent = document.getElementById('resultsContent');
+            
+            resultsContent.innerHTML = `
+                <div style="padding: 20px;">
+                    <h3>Simulation ID: ${result.simulation_id}</h3>
+                    <p><strong>Crop:</strong> ${document.getElementById('cropSelect').value}</p>
+                    <p><strong>Model:</strong> ${document.getElementById('modelSelect').value}</p>
+                    <p><strong>Status:</strong> <span style="color: green;">✓ Complete</span></p>
+                    
+                    <div style="margin-top: 20px;">
+                        <h4>Results:</h4>
+                        <pre>${JSON.stringify(result.results, null, 2)}</pre>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('resultsSection').classList.add('show');
+        }
+        
+        // Stop simulation
+        function stopSimulation() {
+            if (confirm('Stop current simulation?')) {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                showSuccess('Simulation stopped');
+            }
+        }
+        
+        // Change parameters
+        function changeParameters() {
+            document.getElementById('resultsSection').classList.remove('show');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Restart simulation
+        function restartSimulation() {
+            if (confirm('Clear all inputs and restart?')) {
+                document.getElementById('cropSelect').value = '';
+                document.getElementById('modelSelect').value = 'fixed_bed';
+                document.getElementById('userName').value = '';
+                document.getElementById('projectName').value = '';
+                document.getElementById('address').value = '';
+                document.getElementById('initialMoisture').value = '';
+                document.getElementById('targetMoisture').value = '';
+                document.getElementById('grainTemp').value = '';
+                document.getElementById('airTemp').value = '';
+                document.getElementById('airRH').value = '';
+                document.getElementById('airFlowRate').value = '';
+                document.getElementById('grainFlowRate').value = '';
+                document.getElementById('width').value = '';
+                document.getElementById('length').value = '';
+                clearCropParameters();
+                document.getElementById('resultsSection').classList.remove('show');
+                showSuccess('Form reset');
+            }
+        }
+        
+        // Show success message
+        function showSuccess(message) {
+            const alert = document.getElementById('successAlert');
+            alert.textContent = '✅ ' + message;
+            alert.classList.add('show');
+            setTimeout(() => alert.classList.remove('show'), 5000);
+        }
+        
+        // Show error message
+        function showError(message) {
+            const alert = document.getElementById('errorAlert');
+            alert.textContent = '❌ ' + message;
+            alert.classList.add('show');
+            setTimeout(() => alert.classList.remove('show'), 5000);
+        }
+    </script>
+</body>
+</html>

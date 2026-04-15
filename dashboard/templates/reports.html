@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - Grain Dryer System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .content-box {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .report-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        .report-card:hover {
+            border-color: #d32f2f;
+            box-shadow: 0 5px 15px rgba(211, 47, 47, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Reports & Documentation</h1>
+            <p class="text-muted mb-0">Generate comprehensive simulation reports</p>
+        </div>
+        
+        <div class="content-box">
+            <h3>Available Reports</h3>
+            
+            {% if simulations %}
+                {% for sim in simulations %}
+                <div class="report-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5><strong>Simulation #{{ sim.id }}</strong> - {{ sim.crop.name if sim.crop else 'Unknown Crop' }}</h5>
+                            <p class="mb-1">
+                                <strong>Model:</strong> {{ sim.model_type or 'N/A' }} | 
+                                <strong>Method:</strong> {{ sim.processing_method or 'N/A' }}
+                            </p>
+                            <p class="mb-1">
+                                <strong>Drying:</strong> {{ sim.initial_moisture }}% → {{ sim.final_moisture }}% in {{ sim.total_time }} hours
+                            </p>
+                            <p class="text-muted mb-0">
+                                <small>Completed: {{ sim.completed_at.strftime('%Y-%m-%d %H:%M') if sim.completed_at else 'N/A' }}</small>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="/results/{{ sim.id }}" class="btn btn-primary">📊 View Report</a>
+                            <button class="btn btn-success" onclick="alert('PDF export coming soon!')">📄 Export PDF</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    No completed simulations available for reporting. 
+                    <a href="/simulation">Run a simulation first!</a>
+                </div>
+            {% endif %}
+            
+            <div class="mt-4">
+                <a href="/simulation" class="btn btn-success btn-lg">🚀 New Simulation</a>
+                <a href="/" class="btn btn-secondary btn-lg">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

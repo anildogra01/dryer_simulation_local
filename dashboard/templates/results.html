@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation Results - Grain Dryer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        body {
+            font-size: 16px; /* Increased from 14px */
+        }
+        .results-header {
+            background: linear-gradient(135deg, #1a5490 0%, #2d7a3e 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        .results-header h1 {
+            font-size: 2.5rem; /* Increased */
+        }
+        .results-header p {
+            font-size: 1.1rem; /* Increased */
+        }
+        .stat-card {
+            background: white;
+            border-left: 4px solid #1a5490;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 2.3rem; /* Increased from 2rem */
+            font-weight: bold;
+            color: #1a5490;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 1.05rem; /* Increased from 0.9rem */
+        }
+        .graph-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        h2 {
+            font-size: 2rem; /* Increased */
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        h5 {
+            font-size: 1.3rem; /* Increased */
+        }
+        .table {
+            font-size: 1rem; /* Increased from 0.875rem */
+        }
+        .table th {
+            font-size: 1.05rem; /* Increased */
+            font-weight: 600;
+        }
+        .equation-box {
+            background: #f8f9fa;
+            border: 2px solid #1a5490;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 2rem;
+        }
+        .equation-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #1a5490;
+            margin-bottom: 15px;
+        }
+        .equation {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 3px solid #2d7a3e;
+        }
+        .equation-description {
+            font-size: 1rem;
+            color: #555;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <!-- Header -->
+        <div class="results-header">
+            <h1>✓ Simulation Complete</h1>
+            <p class="mb-0"><strong>User:</strong> {{ user_info.user_name }}</p>
+            <p class="mb-0"><strong>Project:</strong> {{ user_info.project_name }}</p>
+            <p class="mb-0"><strong>Address:</strong> {{ user_info.address }}</p>
+        </div>
+
+        <!-- Summary Statistics -->
+        <h2>Results Summary</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ "%.2f"|format(summary.final_moisture_pct) }}%</div>
+                    <div class="stat-label">Final Moisture Content</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ "%.1f"|format(summary.total_time_hr) }} hrs</div>
+                    <div class="stat-label">Total Drying Time</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ "%.1f"|format(summary.moisture_removed_pct) }}%</div>
+                    <div class="stat-label">Moisture Removed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Parameters and Governing Equations -->
+        <h2 class="mt-4">Simulation Details</h2>
+        <div class="row">
+            <!-- Left Column: Input Parameters -->
+            <div class="col-md-6">
+                <h4 class="mb-3">📋 Input Parameters</h4>
+                <table class="table table-striped table-bordered">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                            <th>Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Crop Type</strong></td>
+                            <td>{{ crop_name }}</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Initial Moisture</strong></td>
+                            <td>{{ "%.1f"|format(input_params.initial_moisture) }}</td>
+                            <td>%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Grain Temperature</strong></td>
+                            <td>{{ "%.1f"|format(input_params.grain_temp) }}</td>
+                            <td>°F</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Air Temperature</strong></td>
+                            <td>{{ "%.1f"|format(input_params.air_temp) }}</td>
+                            <td>°F</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Relative Humidity</strong></td>
+                            <td>{{ "%.1f"|format(input_params.rel_humidity) }}</td>
+                            <td>%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Air Flow Rate</strong></td>
+                            <td>{{ "%.1f"|format(input_params.air_flow_cfm) }}</td>
+                            <td>CFM</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bed Depth</strong></td>
+                            <td>{{ "%.1f"|format(input_params.bed_depth) }}</td>
+                            <td>ft</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Right Column: Governing Equations -->
+            <div class="col-md-6">
+                <h4 class="mb-3">📐 Governing Equations</h4>
+                <div class="equation-box">
+                    <div class="equation-title">
+                        {% if model_type == 'thompson' %}
+                        Thompson Drying Model
+                        {% elif model_type == 'page' %}
+                        Page Drying Model
+                        {% elif model_type == 'henderson_pabis' %}
+                        Henderson & Pabis Model
+                        {% else %}
+                        Exponential Drying Model
+                        {% endif %}
+                        <span style="font-size: 0.9rem; color: #666; font-weight: normal;">
+                            ({{ processing_method|upper }} method)
+                        </span>
+                    </div>
+                    
+                    {% if model_type == 'page' %}
+                    <!-- Page Model Equations -->
+                    <div class="equation">
+                        MR = exp(-k × t<sup>n</sup>)
+                    </div>
+                    <div class="equation-description">
+                        Moisture Ratio decay with Page constant n = 1.2
+                    </div>
+                    
+                    <div class="equation mt-3">
+                        MR = (M - M<sub>e</sub>) / (M<sub>0</sub> - M<sub>e</sub>)
+                    </div>
+                    <div class="equation-description">
+                        Where: M<sub>0</sub> = initial moisture, M<sub>e</sub> = equilibrium moisture
+                    </div>
+                    
+                    {% elif model_type == 'henderson_pabis' %}
+                    <!-- Henderson & Pabis Model Equations -->
+                    <div class="equation">
+                        MR = a × exp(-k × t)
+                    </div>
+                    <div class="equation-description">
+                        Moisture Ratio with Henderson & Pabis constant a = 1.05
+                    </div>
+                    
+                    <div class="equation mt-3">
+                        dM/dt = -k × a × (M - M<sub>e</sub>)
+                    </div>
+                    <div class="equation-description">
+                        Enhanced drying rate with empirical constant
+                    </div>
+                    
+                    {% elif model_type == 'thompson' %}
+                    <!-- Thompson Model Equations -->
+                    <div class="equation">
+                        dM/dt = -k × (M - M<sub>e</sub>)
+                    </div>
+                    <div class="equation-description">
+                        Classic thin-layer drying with Thompson's constants
+                    </div>
+                    
+                    <div class="equation mt-3">
+                        k = 0.18 × f(T) × f(RH)
+                    </div>
+                    <div class="equation-description">
+                        Thompson drying constant (higher than standard)
+                    </div>
+                    
+                    {% else %}
+                    <!-- Exponential Model Equations (Default) -->
+                    <div class="equation">
+                        dM/dt = -k × (M - M<sub>e</sub>)
+                    </div>
+                    <div class="equation-description">
+                        Basic exponential decay model for thin-layer drying
+                    </div>
+                    
+                    <div class="equation mt-3">
+                        k = 0.15 × f(T) × f(RH)
+                    </div>
+                    <div class="equation-description">
+                        Standard drying constant
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Common equations for all models -->
+                    <div class="equation mt-3">
+                        M<sub>e</sub> = 5.0 + (RH × 0.08)
+                    </div>
+                    <div class="equation-description">
+                        Equilibrium moisture content (% wet basis)
+                    </div>
+                    
+                    <div class="equation mt-3">
+                        f(T) = (T<sub>air</sub> - 60) / 50
+                    </div>
+                    <div class="equation-description">
+                        Temperature factor (normalized to °F)
+                    </div>
+                    
+                    <div class="equation mt-3">
+                        f(RH) = 1 - (RH / 100)
+                    </div>
+                    <div class="equation-description">
+                        Relative humidity factor
+                    </div>
+                    
+                    {% if processing_method == 'rk4' %}
+                    <div class="equation mt-3" style="border-left-color: #d32f2f;">
+                        RK4: y<sub>n+1</sub> = y<sub>n</sub> + (h/6)(k<sub>1</sub> + 2k<sub>2</sub> + 2k<sub>3</sub> + k<sub>4</sub>)
+                    </div>
+                    <div class="equation-description">
+                        4th-order Runge-Kutta numerical integration for higher accuracy
+                    </div>
+                    {% else %}
+                    <div class="equation mt-3" style="border-left-color: #2d7a3e;">
+                        Euler: y<sub>n+1</sub> = y<sub>n</sub> + h × f(y<sub>n</sub>, t<sub>n</sub>)
+                    </div>
+                    <div class="equation-description">
+                        Euler method for numerical integration (faster, good for estimates)
+                    </div>
+                    {% endif %}
+                    
+                    <div class="equation mt-3">
+                        Q = W<sub>removed</sub> × 1000 BTU/lb
+                    </div>
+                    <div class="equation-description">
+                        Energy required for water evaporation (latent heat of vaporization)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drying Analysis Graphs -->
+        <h2 class="mt-4">Drying Analysis</h2>
+        <div class="row">
+            <!-- Graph 1: Time vs Moisture Content -->
+            <div class="col-md-6">
+                <div class="graph-container">
+                    <h5 class="text-center">Time vs Moisture Content</h5>
+                    <div id="timeVsMoistureGraph"></div>
+                </div>
+            </div>
+            
+            <!-- Graph 2: Initial Air Temperature vs Moisture Content -->
+            <div class="col-md-6">
+                <div class="graph-container">
+                    <h5 class="text-center">Air Temperature vs Moisture Content</h5>
+                    <div id="tempVsMoistureGraph"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <!-- Graph 3: CFM vs Drying Rate -->
+            <div class="col-md-6">
+                <div class="graph-container">
+                    <h5 class="text-center">Air Flow (CFM) vs Drying Rate</h5>
+                    <div id="cfmVsDryingRateGraph"></div>
+                </div>
+            </div>
+            
+            <!-- Graph 4: Grain Moisture Content vs Drying Rate -->
+            <div class="col-md-6">
+                <div class="graph-container">
+                    <h5 class="text-center">Moisture Content vs Drying Rate</h5>
+                    <div id="moistureVsDryingRateGraph"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Series Data Table -->
+        <h2 class="mt-4">Detailed Results</h2>
+        <table class="table table-sm table-striped table-bordered">
+            <thead class="table-success">
+                <tr>
+                    <th>Time (hr)</th>
+                    <th>Avg Moisture (%)</th>
+                    <th>Drying Rate (%/hr)</th>
+                    <th>Energy (BTU)</th>
+                    <th>Water Removed (lb)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for point in time_series %}
+                <tr>
+                    <td>{{ "%.2f"|format(point.time_hr) }}</td>
+                    <td>{{ "%.2f"|format(point.avg_moisture_pct) }}</td>
+                    <td>{{ "%.3f"|format(point.drying_rate) }}</td>
+                    <td>{{ "%.2f"|format(point.energy_btu) }}</td>
+                    <td>{{ "%.2f"|format(point.water_removed_lb) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Download PDF Button -->
+        <div class="text-center my-4">
+            <a href="{{ url_for('download_pdf', sim_id=sim_id) }}" class="btn btn-lg btn-primary">
+                📄 Download PDF Report
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-lg btn-secondary">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Prepare data from template
+        var times = {{ times|tojson }};
+        var moistures = {{ moistures|tojson }};
+        var dryingRates = {{ drying_rates|tojson }};
+        var gradients = {{ gradients|tojson }};
+        var airTemp = {{ input_params.air_temp }};
+        var cfm = {{ input_params.air_flow_cfm }};
+        
+        // Extract layer data from gradients
+        var numLayers = gradients[0] ? gradients[0].length : 5;
+        var layerNames = ['Bottom (Air Inlet)', 'Layer 2', 'Layer 3', 'Layer 4', 'Top (Air Outlet)'];
+        
+        // Common layout settings
+        var commonLayout = {
+            plot_bgcolor: '#f8f9fa',
+            paper_bgcolor: 'white',
+            font: {family: 'Arial, sans-serif', size: 13},
+            margin: {t: 40, b: 60, l: 70, r: 40},
+            height: 350,
+            showlegend: true,
+            legend: {x: 1.05, y: 1, font: {size: 11}}
+        };
+
+        // Graph 1: Time vs Moisture Content with Gradients
+        var traces1 = [];
+        
+        // Add average moisture line
+        traces1.push({
+            x: times,
+            y: moistures,
+            mode: 'lines',
+            name: 'Average MC',
+            line: {color: '#1a5490', width: 4},
+            hovertemplate: 'Time: %{x:.2f} hr<br>Avg MC: %{y:.2f}%<extra></extra>'
+        });
+        
+        // Add gradient lines for each layer
+        var colors = ['#d32f2f', '#f57c00', '#fbc02d', '#7cb342', '#1976d2'];
+        for (let layer = 0; layer < numLayers; layer++) {
+            var layerData = gradients.map(g => g ? g[layer] : null);
+            traces1.push({
+                x: times,
+                y: layerData,
+                mode: 'lines',
+                name: layerNames[layer],
+                line: {color: colors[layer], width: 2, dash: 'dot'},
+                hovertemplate: layerNames[layer] + '<br>Time: %{x:.2f} hr<br>MC: %{y:.2f}%<extra></extra>'
+            });
+        }
+
+        var layout1 = {
+            ...commonLayout,
+            title: {text: 'Moisture Gradient Through Bed Depth', font: {size: 15}},
+            xaxis: {title: 'Time (hours)', gridcolor: '#e0e0e0'},
+            yaxis: {title: 'Moisture Content (%)', gridcolor: '#e0e0e0'}
+        };
+
+        Plotly.newPlot('timeVsMoistureGraph', traces1, layout1, {responsive: true});
+
+        // Graph 2: Air Temperature Effect with Gradients
+        var traces2 = [];
+        
+        for (let layer = 0; layer < numLayers; layer++) {
+            var layerData = gradients.map(g => g ? g[layer] : null);
+            traces2.push({
+                x: times,
+                y: layerData,
+                mode: 'markers',
+                name: layerNames[layer],
+                marker: {
+                    size: 8,
+                    color: colors[layer],
+                    line: {color: '#333', width: 0.5}
+                },
+                hovertemplate: layerNames[layer] + '<br>Time: %{x:.2f} hr<br>MC: %{y:.2f}%<extra></extra>'
+            });
+        }
+
+        var layout2 = {
+            ...commonLayout,
+            title: {text: 'Layer-wise Drying at ' + airTemp + '°F', font: {size: 15}},
+            xaxis: {title: 'Time (hours)', gridcolor: '#e0e0e0'},
+            yaxis: {title: 'Moisture Content (%)', gridcolor: '#e0e0e0'}
+        };
+
+        Plotly.newPlot('tempVsMoistureGraph', traces2, layout2, {responsive: true});
+
+        // Graph 3: CFM vs Drying Rate with Gradients
+        // Calculate layer-specific drying rates
+        var traces3 = [];
+        
+        for (let layer = 0; layer < numLayers; layer++) {
+            var layerMoistures = gradients.map(g => g ? g[layer] : null);
+            var layerRates = [];
+            
+            for (let i = 1; i < times.length; i++) {
+                let deltaM = layerMoistures[i-1] - layerMoistures[i];
+                let deltaT = times[i] - times[i-1];
+                layerRates.push(deltaT > 0 ? deltaM / deltaT : 0);
+            }
+            layerRates.unshift(layerRates[0] || 0);
+            
+            traces3.push({
+                x: times,
+                y: layerRates,
+                mode: 'lines',
+                name: layerNames[layer],
+                line: {color: colors[layer], width: 2},
+                hovertemplate: layerNames[layer] + '<br>Time: %{x:.2f} hr<br>Rate: %{y:.3f} %/hr<extra></extra>'
+            });
+        }
+
+        var layout3 = {
+            ...commonLayout,
+            title: {text: 'Layer Drying Rates at ' + cfm + ' CFM', font: {size: 15}},
+            xaxis: {title: 'Time (hours)', gridcolor: '#e0e0e0'},
+            yaxis: {title: 'Drying Rate (%/hr)', gridcolor: '#e0e0e0'}
+        };
+
+        Plotly.newPlot('cfmVsDryingRateGraph', traces3, layout3, {responsive: true});
+
+        // Graph 4: Moisture Content vs Drying Rate with Gradients
+        var traces4 = [];
+        
+        for (let layer = 0; layer < numLayers; layer++) {
+            var layerMoistures = gradients.map(g => g ? g[layer] : null);
+            var layerRates = [];
+            
+            for (let i = 1; i < times.length; i++) {
+                let deltaM = layerMoistures[i-1] - layerMoistures[i];
+                let deltaT = times[i] - times[i-1];
+                layerRates.push(deltaT > 0 ? deltaM / deltaT : 0);
+            }
+            layerRates.unshift(layerRates[0] || 0);
+            
+            traces4.push({
+                x: layerMoistures,
+                y: layerRates,
+                mode: 'lines+markers',
+                name: layerNames[layer],
+                line: {color: colors[layer], width: 2},
+                marker: {size: 6, color: colors[layer]},
+                hovertemplate: layerNames[layer] + '<br>MC: %{x:.2f}%<br>Rate: %{y:.3f} %/hr<extra></extra>'
+            });
+        }
+
+        var layout4 = {
+            ...commonLayout,
+            title: {text: 'Drying Kinetics by Layer', font: {size: 15}},
+            xaxis: {title: 'Grain Moisture Content (%)', gridcolor: '#e0e0e0'},
+            yaxis: {title: 'Drying Rate (%/hr)', gridcolor: '#e0e0e0'}
+        };
+
+        Plotly.newPlot('moistureVsDryingRateGraph', traces4, layout4, {responsive: true});
+    </script>
+</body>
+</html>
